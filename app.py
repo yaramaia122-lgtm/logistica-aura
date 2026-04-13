@@ -1,75 +1,122 @@
 import streamlit as st
-from gspread_pandas import Spread, conf
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 from datetime import datetime
 
-# --- CONFIGURAÇÃO WEB ---
+# Configuração da Página
 st.set_page_config(page_title="Aura Logística Web", layout="wide")
 
-# Conexão com Google Sheets (Necessita do arquivo de credenciais da Google)
-# Para fins de demonstração, o código assume que as credenciais estão configuradas
-PLANILHA_NOME = "Logistica_Aura"
+# Conexão com o Google Sheets
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-def carregar_dados(aba_nome):
-    try:
-        # Aqui o Python liga-se à tua planilha na nuvem
-        s = Spread(PLANILHA_NOME)
-        return s.sheet_to_df(sheet=aba_nome, index=0)
-    except:
-        return pd.DataFrame()
+# Mapeamento de Centro de Custo (PDF)
+MAPA_CC = {
+    "Moagem": "210301", "Detox": "210403", "Laboratório": "210801",
+    "Manutenção Mecânica Planta": "211002", "Administração Planta": "210101",
+    "Geologia Operacional": "121101", "Meio Ambiente": "310501",
+    "Segurança do Trabalho": "310503", "Saude": "310502"
+}
 
-# --- INTERFACE ---
-st.title("🚛 Sistema de Logística e Rateio de Viagens")
+st.title("🚛 Sistema de Logística e Custos Aura (Web)")
 
-aba1, aba2, aba3 = st.tabs(["📋 Programação", "💰 Lançar Custos", "📊 Relatórios por Área"])
+menu = st.sidebar.radio("Navegação", ["Painel do Motorista", "Lançar Viagem/Logística", "Inserir Custos (Combustível/Hotel)", "Cadastro de Passageiros"])
 
-with aba1:
-    st.header("Nova Programação de Viagem")
-    with st.form("nova_viagem"):
-        col1, col2 = st.columns(2)
-        with col1:
-            data = st.date_input("Data da Viagem")
-            trajeto = st.selectbox("Trajeto", ["PONTES E LACERDA X CUIABÁ", "CUIABÁ X PONTES E LACERDA"])
-            motorista = st.selectbox("Motorista", ["Ilson", "Antonio"])
-        
-        with col2:
-            passageiros = st.multiselect("Passageiros", ["Guilherme", "Fabiele", "José Flavio", "Eduardo"]) # Puxar do cadastro depois
-        
-        # Horários Individuais
-        detalhes = []
-        if passageiros:
-            for p in passageiros:
-                c1, c2 = st.columns(2)
-                h_s = c1.time_input(f"Saída de {p}", key=f"s_{p}")
-                h_v = c2.time_input(f"Voo de {p}", key=f"v_{p}")
-                detalhes.append({"p": p, "saida": h_s.strftime("%H:%M"), "voo": h_v.strftime("%H:%M")})
-        
-        if st.form_submit_button("Salvar Logística"):
-            # Lógica para enviar para o Google Sheets
-            st.success("Viagem salva na nuvem! O motorista já consegue visualizar.")
+# --- CADASTRO DE PASSAGEIROS ---
+if menu == "Cadastro de Passageiros":
+    st.header("👥 Cadastro de Equipe")
+    with st.form("cadastro_form"):
+        nome = st.text_input("Nome Completo")
+        area = st.selectbox("Área", sorted(list(MAPA_CC.keys())))
+        if st.form_submit_button("Salvar na Nuvem"):
+            df_existente = conn.read(worksheet="Passageiros")
+            novo_p = pd.DataFrame([{"Nome": nome, "Area": area, "Codigo": MAPA_CC[area]}])
+            df_final = pd.concat([df_existente, novo_p], ignore_index=True)
+            conn.update(worksheet="Passageiros", data=df_final)
+            st.success(f"{nome} cadastrado!")
 
-with aba2:
-    st.header("Inserir Custos (Combustível, Hotel, Aéreo)")
-    st.info("Aqui selecionas as viagens já realizadas e inseres os valores que chegaram depois.")
-    # Filtro de viagens sem custo
-    viagem_id = st.selectbox("Selecione a Viagem Pendente", ["Viagem 10/04 - Ilson", "Viagem 12/04 - Antonio"])
+# --- LANÇAR LOGÍSTICA (MOTORISTA VÊ NA HORA) ---
+elif menu == "Lançar Viagem/Logística":
+    st.header("🕒 Programação Operacional")
+    df_p = conn.read(worksheet="Passageiros")
     
-    v_carro = st.number_input("Valor Total Combustível/Traslado", min_value=0.0)
-    
-    # Exemplo de custos individuais
-    st.write("Custos de Hotel e Aéreo por Passageiro:")
-    # O sistema gera campos automáticos para cada passageiro daquela viagem
-    
-    if st.button("Finalizar e Ratear"):
-        st.success("Custos processados e divididos por Centro de Custo!")
+    if df_p.empty:
+        st.warning("Cadastre passageiros primeiro.")
+    else:
+        with st.form("logistica_form"):
+            col1, col2 = st.columns(2)
+            data_v = col1.date_input("Data da Viagem")
+            trajeto = col1.selectbox("Trajeto", ["PONTES E LACERDA X CUIABÁ", "CUIABÁ X PONTES E LACERDA"])
+            motorista = col2.selectbox("Motorista", ["Ilson", "Antonio"])
+            veiculo = col2.selectbox("Veículo", ["SW4 BRANCA", "SW4 PRATA", "VAN"])
+            
+            passageiros_sel = st.multiselect("Selecione os Passageiros", df_p['Nome'].unique())
+            
+            detalhes = []
+            if passageiros_sel:
+                for p in passageiros_sel:
+                    c1, c2 = st.columns(2)
+                    h_s = c1.time_input(f"Saída de {p}", key=f"s_{p}")
+                    h_v = c2.time_input(f"Voo de {p}", key=f"v_{p}")
+                    detalhes.append({"p": p, "s": h_s.strftime("%H:%M"), "v": h_v.strftime("%H:%M")})
 
-with aba3:
-    st.header("Relatório Consolidado por Centro de Custo")
-    # Tabela dinâmica que soma tudo por Descrição de Área (Moagem, Geologia, etc.)
-    st.markdown("### Total por Área (Descrição)")
-    # Simulação de output
-    df_exemplo = pd.DataFrame({
-        "Área": ["Moagem", "Laboratório", "Geologia"],
-        "Custo Total (R$)": [1250.50, 800.00, 2100.20]
-    })
-    st.table(df_exemplo)
+            if st.form_submit_button("Confirmar Programação"):
+                viagem_id = datetime.now().strftime("%Y%m%d%H%M%S")
+                df_viagens = conn.read(worksheet="Viagens")
+                novas_linhas = []
+                for d in detalhes:
+                    info = df_p[df_p['Nome'] == d['p']].iloc[0]
+                    novas_linhas.append({
+                        "ID": viagem_id, "Data": str(data_v), "Motorista": motorista,
+                        "Passageiro": d['p'], "Area": info['Area'], "Saida": d['s'],
+                        "Voo": d['v'], "Trajeto": trajeto, "Veiculo": veiculo, "Status": "Pendente Custo"
+                    })
+                df_updated = pd.concat([df_viagens, pd.DataFrame(novas_linhas)], ignore_index=True)
+                conn.update(worksheet="Viagens", data=df_updated)
+                st.success("Logística publicada! Motorista já pode visualizar.")
+
+# --- INSERIR CUSTOS (COMBUSTÍVEL CHEGA DEPOIS) ---
+elif menu == "Inserir Custos (Combustível/Hotel)":
+    st.header("💰 Rateio Financeiro")
+    df_v = conn.read(worksheet="Viagens")
+    
+    if not df_v.empty:
+        viagens_pendentes = df_v[df_v['Status'] == "Pendente Custo"]['ID'].unique()
+        viagem_sel = st.selectbox("Selecione a Viagem para fechar custos", viagens_pendentes)
+        
+        if viagem_sel:
+            pess_na_viagem = df_v[df_v['ID'] == viagem_sel]['Passageiro'].tolist()
+            st.write(f"Passageiros no carro: {len(pess_na_viagem)}")
+            
+            v_combustivel = st.number_input("Valor Total Combustível/Traslado (R$)", min_value=0.0)
+            rateio_carro = v_combustivel / len(pess_na_viagem)
+            
+            custos_ind = []
+            for p in pess_na_viagem:
+                st.subheader(f"Custos Individuais: {p}")
+                col1, col2 = st.columns(2)
+                h = col1.number_input(f"Hotel para {p}", key=f"h_{p}")
+                a = col2.number_input(f"Aéreo para {p}", key=f"a_{p}")
+                custos_ind.append({"p": p, "h": h, "a": a})
+            
+            if st.button("Finalizar e Enviar para o Financeiro"):
+                for c in custos_ind:
+                    idx = df_v[(df_v['ID'] == viagem_sel) & (df_v['Passageiro'] == c['p'])].index
+                    df_v.loc[idx, 'Custo_Carro'] = rateio_carro
+                    df_v.loc[idx, 'Hotel'] = c['h']
+                    df_v.loc[idx, 'Aereo'] = c['a']
+                    df_v.loc[idx, 'Total'] = rateio_carro + c['h'] + c['a']
+                    df_v.loc[idx, 'Status'] = "Finalizado"
+                
+                conn.update(worksheet="Viagens", data=df_v)
+                st.balloons()
+                st.success("Custos rateados por área!")
+
+# --- PAINEL DO MOTORISTA ---
+elif menu == "Painel do Motorista":
+    st.header("🚗 Agenda de Saídas")
+    df = conn.read(worksheet="Viagens")
+    if not df.empty:
+        hoje = str(datetime.today().date())
+        agenda = df[df['Data'] == hoje]
+        st.write(f"Hoje: {datetime.today().strftime('%d/%m/%Y')}")
+        st.table(agenda[['Saida', 'Passageiro', 'Voo', 'Trajeto', 'Motorista', 'Veiculo']])
