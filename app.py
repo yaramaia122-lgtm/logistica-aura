@@ -19,7 +19,7 @@ def salvar(df, file): df.to_csv(file, index=False)
 df_v = carregar(DB_VIAGENS, ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Hotel_Valor", "Aereo_Valor", "Combustivel", "Total"])
 df_p = carregar(DB_PASSAGEIROS, ["Nome", "Centro_Custo_Padrao"])
 
-# --- LISTA COMPLETA DE CENTROS DE CUSTO (CONFORME SEU MAPA) ---
+# LISTA DE CENTROS DE CUSTO
 LISTA_CC = [
     "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
     "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
@@ -34,7 +34,7 @@ LISTA_CC = [
     "151103 - Geotecnia - Nosde", "210502 - Barragem", "151102 - Planejamento e Topografia - Nosde",
     "310501 - Meio Ambiente", "310503 - Segurança do Trabalho", "310502 - Saude",
     "150101 - Administração de Mina - Nosde", "120101 - Administração de Mina - Ernesto"
-] # 
+]
 
 st.title("🚛 Gestão de Logística Aura")
 menu = st.sidebar.radio("Navegação", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
@@ -46,11 +46,12 @@ if menu == "📋 Agenda Motoristas":
         agenda = df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem"]]
         st.dataframe(agenda, use_container_width=True)
         csv = agenda.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 Baixar Agenda para Motoristas", csv, "agenda_operacional.csv", "text/csv")
+        # ADICIONADO KEY ÚNICA AQUI
+        st.download_button("📥 Baixar Agenda para Motoristas", csv, "agenda_operacional.csv", "text/csv", key='btn_agenda')
     else:
         st.info("Nenhuma viagem programada.")
 
-# 2. PROGRAMAR VIAGEM (COM CC FLEXÍVEL E TRAJETO LIVRE)
+# 2. PROGRAMAR VIAGEM
 elif menu == "📝 Programar Viagem":
     st.header("📝 Nova Programação")
     if df_p.empty:
@@ -60,40 +61,31 @@ elif menu == "📝 Programar Viagem":
             col1, col2 = st.columns(2)
             data = col1.date_input("Data")
             mot = col1.selectbox("Motorista", ["Ilson", "Antonio"])
-            
             passag_nome = col2.selectbox("Passageiro", sorted(df_p["Nome"].tolist()))
             cc_sugerido = df_p[df_p["Nome"] == passag_nome]["Centro_Custo_Padrao"].values[0]
-            
-            # Opção de trocar o Centro de Custo na hora
             cc_viagem = col2.selectbox("Centro de Custo desta Viagem", sorted(LISTA_CC), index=sorted(LISTA_CC).index(cc_sugerido))
-            
             saida = col1.text_input("Horário Saída (Ex: 06:00)")
             voo = col2.text_input("Voo/Horário (Ex: Latam - 04:35)")
-            
-            # Trajeto agora permite selecionar ou digitar um novo
-            st.write("---")
             traj_opcoes = ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"]
             traj_sel = st.selectbox("Selecione o Trajeto ou 'OUTRO' para digitar", traj_opcoes)
             
+            traj_final = ""
             if traj_sel == "OUTRO":
                 traj_final = st.text_input("Digite o Trajeto Personalizado")
             else:
                 traj_final = traj_sel
                 
-            hosp = st.text_input("Informação de Hotel/Destino (Ex: Cerrados, Aeroporto, Vila Bela)")
+            hosp = st.text_input("Informação de Hotel/Destino")
             
             if st.form_submit_button("Salvar na Agenda"):
-                if traj_sel == "OUTRO" and not traj_final:
-                    st.error("Por favor, digite o trajeto personalizado.")
-                else:
-                    nova = pd.DataFrame([{
-                        "Data": data.strftime('%d/%m/%Y'), "Motorista": mot, "Passageiro": passag_nome, 
-                        "CC": cc_viagem, "Saida": saida, "Voo": voo, "Trajeto": traj_final, "Hospedagem": hosp,
-                        "Hotel_Valor": 0, "Aereo_Valor": 0, "Combustivel": 0, "Total": 0
-                    }])
-                    df_v = pd.concat([df_v, nova], ignore_index=True)
-                    salvar(df_v, DB_VIAGENS)
-                    st.success("Viagem programada!")
+                nova = pd.DataFrame([{
+                    "Data": data.strftime('%d/%m/%Y'), "Motorista": mot, "Passageiro": passag_nome, 
+                    "CC": cc_viagem, "Saida": saida, "Voo": voo, "Trajeto": traj_final, "Hospedagem": hosp,
+                    "Hotel_Valor": 0.0, "Aereo_Valor": 0.0, "Combustivel": 0.0, "Total": 0.0
+                }])
+                df_v = pd.concat([df_v, nova], ignore_index=True)
+                salvar(df_v, DB_VIAGENS)
+                st.success("Viagem programada!")
 
 # 3. CADASTRAR VIAJANTE
 elif menu == "👤 Cadastrar Viajante":
@@ -117,5 +109,7 @@ elif menu == "💰 Financeiro":
         if st.button("Salvar Fechamento"):
             salvar(df_editado, DB_VIAGENS)
             st.success("Custos salvos!")
+        
         csv_fin = df_editado.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 Baixar Relatório Financeiro", csv_fin, "financeiro_aura.csv")
+        # ADICIONADO KEY ÚNICA AQUI TAMBÉM
+        st.download_button("📥 Baixar Relatório Financeiro", csv_fin, "financeiro_aura.csv", key='btn_financeiro')
