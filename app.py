@@ -3,7 +3,19 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# Bancos de Dados Internos
+# 1. CONFIGURAÇÃO DA PÁGINA (FORÇANDO O TEMA)
+st.set_page_config(page_title="Aura Minerals - Logística", layout="wide")
+
+# CSS para garantir que o fundo fique branco e os títulos em Azul Aura
+st.markdown("""
+    <style>
+    .stApp { background-color: white; }
+    h1, h2, h3, p, span { color: #002D5E !important; }
+    .stTable { background-color: white; color: #002D5E; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. BANCO DE DADOS
 DB_VIAGENS = "db_viagens.csv"
 DB_PASSAGEIROS = "db_p.csv"
 
@@ -15,62 +27,66 @@ def carregar(file, cols):
 
 def salvar(df, file): df.to_csv(file, index=False)
 
-# Colunas Oficiais (Layout do Excel)
 COLS_V = ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao", "Hotel_Valor", "Aereo_Valor", "Combustivel", "Total"]
 df_v = carregar(DB_VIAGENS, COLS_V)
 df_p = carregar(DB_PASSAGEIROS, ["Nome", "Centro_Custo_Padrao"])
 
-# LISTA DE CENTROS DE CUSTO (TODOS DO MAPA)
+# LISTA COMPLETA DE CC (Resumo do seu PDF)
 LISTA_CC = sorted([
-    "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manut. Mecânica Planta",
-    "210405 - Lixiviação / Cianetação", "210101 - Admin. Planta", "211001 - Manut. Elétrica Planta",
-    "320101 - Suprimentos", "320301 - RH", "121101 - Geologia Ernesto", "151101 - Geologia Nosde",
+    "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manut. Mecânica",
+    "210101 - Admin. Planta", "320101 - Suprimentos", "320301 - RH", "121101 - Geologia",
     "310501 - Meio Ambiente", "310503 - Segurança Trabalho", "310502 - Saude"
 ])
 
-st.title("Aura Minerals - Logística Operacional")
+# 3. LOGO E MENU
+# Usando a logo oficial da Aura via URL estável
+st.sidebar.image("https://auraminerals.com/wp-content/themes/aura-minerals/assets/img/logo-aura.png", width=150)
+st.sidebar.markdown("---")
+menu = st.sidebar.radio("Navegação", ["📅 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-menu = st.sidebar.selectbox("MENU", ["Agenda Motoristas", "Programar Viagem", "Viajantes", "Financeiro"])
-
-# 1. AGENDA PARA OS MOTORISTAS
-if menu == "Agenda Motoristas":
-    st.subheader("Agenda de Viagens")
+# 4. MÓDULOS
+if menu == "📅 Agenda Motoristas":
+    st.header("Agenda de Logística Operacional")
     if not df_v.empty:
-        # Colunas conforme o Excel solicitado
+        # Tabela limpa com campo de observação
         agenda = df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]]
-        st.table(agenda) # st.table fica mais parecido com o padrão impresso
+        st.table(agenda)
         
         csv = agenda.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("Exportar Agenda Operacional (CSV)", csv, "agenda_motoristas.csv", key='btn_op')
+        st.download_button("📥 Exportar Agenda para Motoristas", csv, "agenda_aura.csv", "text/csv")
     else:
-        st.info("Nenhuma programação para exibir.")
+        st.info("Nenhuma viagem programada.")
 
-# 2. PROGRAMAR VIAGEM
-elif menu == "Programar Viagem":
-    st.subheader("Nova Programação")
+elif menu == "📝 Programar Viagem":
+    st.header("Nova Programação")
     if df_p.empty:
-        st.warning("Cadastre um viajante primeiro.")
+        st.warning("Cadastre o viajante primeiro.")
     else:
-        nome_sel = st.selectbox("Passageiro", sorted(df_p["Nome"].tolist()))
+        # Proteção para não dar erro se o nome sumir
+        lista_nomes = sorted(df_p["Nome"].tolist())
+        nome_sel = st.selectbox("Selecione o Passageiro", lista_nomes)
         cc_default = df_p[df_p["Nome"] == nome_sel]["Centro_Custo_Padrao"].iloc[0]
 
-        with st.form("form_viagem_v5"):
+        with st.form("form_viagem_v6"):
             col1, col2 = st.columns(2)
-            data_v = col1.date_input("Data")
+            data_v = col1.date_input("Data da Viagem")
             mot_v = col1.selectbox("Motorista", ["Ilson", "Antonio"])
-            cc_v = col2.selectbox("Centro de Custo", LISTA_CC, index=LISTA_CC.index(cc_default))
+            
+            try: idx_cc = LISTA_CC.index(cc_default)
+            except: idx_cc = 0
+            cc_v = col2.selectbox("Centro de Custo (Rateio)", LISTA_CC, index=idx_cc)
             
             saida_v = col1.text_input("Horário Saída")
             voo_v = col2.text_input("Voo / Horário")
             
             traj_opc = ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"]
-            traj_s = st.selectbox("Trajeto", traj_opc)
-            traj_m = st.text_input("Se 'OUTRO', especifique")
+            traj_s = col1.selectbox("Trajeto", traj_opc)
+            traj_m = col1.text_input("Se 'OUTRO', digite aqui")
             
-            hosp_v = st.text_input("Destino / Hotel")
-            obs_v = st.text_area("Observações para o Motorista")
+            hosp_v = col2.text_input("Hotel ou Destino Final")
+            obs_v = st.text_area("Observação Importante")
             
-            if st.form_submit_button("Confirmar Programação"):
+            if st.form_submit_button("Salvar Programação"):
                 t_final = traj_m if traj_s == "OUTRO" else traj_s
                 nova = pd.DataFrame([{
                     "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": nome_sel, 
@@ -79,39 +95,35 @@ elif menu == "Programar Viagem":
                 }])
                 df_v = pd.concat([df_v, nova], ignore_index=True)
                 salvar(df_v, DB_VIAGENS)
-                st.success("Salvo com sucesso!")
+                st.success("✅ Viagem salva na agenda!")
                 st.rerun()
 
-# 4. FINANCEIRO (RATEIO)
-elif menu == "Financeiro":
-    st.subheader("Gestão de Custos")
+elif menu == "👤 Cadastrar Viajante":
+    st.header("Cadastro de Viajantes")
+    with st.form("form_cad"):
+        n = st.text_input("Nome Completo").upper()
+        c = st.selectbox("CC Padrão", LISTA_CC)
+        if st.form_submit_button("Cadastrar"):
+            if n:
+                nova_p = pd.DataFrame([{"Nome": n, "Centro_Custo_Padrao": c}])
+                df_p = pd.concat([df_p, nova_p], ignore_index=True)
+                salvar(df_p, DB_PASSAGEIROS)
+                st.success("Funcionário Cadastrado!")
+                st.rerun()
+
+elif menu == "💰 Financeiro":
+    st.header("Gestão de Custos e Rateio")
     if not df_v.empty:
-        # Edição direta com lista suspensa no CC
+        # Editor com lista suspensa no CC
         df_ed = st.data_editor(
             df_v,
-            column_config={"CC": st.column_config.SelectboxColumn("Centro de Custo", options=LISTA_CC)},
-            key="fin_editor"
+            column_config={"CC": st.column_config.SelectboxColumn("CC", options=LISTA_CC)},
+            key="editor_aura"
         )
         df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel"]
-        
-        if st.button("Salvar Financeiro"):
+        if st.button("Salvar Valores"):
             salvar(df_ed, DB_VIAGENS)
-            st.success("Custos atualizados!")
+            st.success("Dados Financeiros Atualizados!")
         
-        csv_fin = df_ed.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("Exportar Relatório Financeiro", csv_fin, "financeiro_aura.csv")
-    else:
-        st.info("Aguardando lançamentos.")
-
-# 3. CADASTRO DE VIAJANTE (PARA MANTER A ORDEM)
-elif menu == "Viajantes":
-    st.subheader("Cadastro de Funcionários")
-    with st.form("form_viajantes"):
-        n = st.text_input("Nome Completo").upper()
-        c = st.selectbox("Centro de Custo Padrão", LISTA_CC)
-        if st.form_submit_button("Cadastrar"):
-            nova_p = pd.DataFrame([{"Nome": n, "Centro_Custo_Padrao": c}])
-            df_p = pd.concat([df_p, nova_p], ignore_index=True)
-            salvar(df_p, DB_PASSAGEIROS)
-            st.success("Funcionário Cadastrado!")
-            st.rerun()
+        csv_f = df_ed.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 Baixar Relatório Completo", csv_f, "financeiro_aura.csv")
