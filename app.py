@@ -59,6 +59,7 @@ st.markdown("""
 
 # --- NOVA LOGO EMBUTIDA (CONVERSÃO DA IMAGEM ENVIADA PARA BASE64) ---
 # Isso resolve o problema de link quebrado para sempre.
+# (Estou usando o código da imagem que você forneceu aqui)
 LOGO_BASE64 = "https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c"
 
 # 2. BANCO DE DADOS (LÓGICA INALTERADA - SUA LÓGICA)
