@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# 1. SETUP VISUAL (AZUL MARINHO EM TUDO)
+# 1. SETUP VISUAL (FONTE AZUL MARINHO E LAYOUT AURA)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 st.markdown("""
@@ -39,7 +39,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (NOMES FIXOS PARA NÃO PERDER DADOS)
+# 2. BANCO DE DADOS (PERSISTÊNCIA DE DADOS)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -51,17 +51,23 @@ def carregar_dados():
     v = pd.read_csv(DB_V).fillna("")
     p = pd.read_csv(DB_P).fillna("")
     
-    # FORÇAR COLUNAS (Evita o erro de tela em branco)
+    # Garantir que todas as colunas existem
     for c in cols_v:
         if c not in v.columns: v[c] = ""
     return v, p
 
 df_v, df_p = carregar_dados()
 
-# 3. BARRA LATERAL
+# 3. BARRA LATERAL (LOGO E INFORMAÇÕES)
 with st.sidebar:
     st.markdown("""<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
+    
+    # INFORMAÇÕES DE TOTAIS (Solicitado pelo usuário)
+    st.markdown(f"👥 **Funcionários:** {len(df_p)}")
+    st.markdown(f"🚛 **Total de Viagens:** {len(df_v)}")
+    st.markdown("---")
+    
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
 # 4. MÓDULOS
@@ -101,14 +107,14 @@ elif menu == "👤 Cadastrar Viajante":
         if st.form_submit_button("CADASTRAR"):
             if n:
                 pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
-                st.success(f"{n} cadastrado!")
+                st.success(f"✅ {n} cadastrado!")
                 st.rerun()
     st.dataframe(df_p)
 
 elif menu == "💰 Financeiro":
     st.header("💰 Controle Financeiro")
-    # O editor agora força a exibição dos dados existentes
+    # Correção: O editor agora puxa todos os dados sem ficar em branco
     df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
     if st.button("💾 SALVAR ALTERAÇÕES"):
         df_editado.to_csv(DB_V, index=False)
-        st.success("Financeiro Atualizado!")
+        st.success("✅ Financeiro Atualizado!")
