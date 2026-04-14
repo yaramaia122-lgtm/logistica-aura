@@ -8,35 +8,29 @@ st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 st.markdown("""
     <style>
-    /* Fundo Branco */
     .stApp { background-color: #FFFFFF !important; }
-    
-    /* Barra Lateral Azul Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         border-right: 3px solid #FFC20E;
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
-    
-    /* Sombra na Logo */
     .logo-aura {
         filter: drop-shadow(0px 4px 10px rgba(255, 255, 255, 0.4));
         display: block; margin: auto; padding-bottom: 20px;
     }
     
-    /* AZUL MARINHO EM TODAS AS FONTES (Grandes e Pequenas) */
+    /* TODAS AS FONTES EM AZUL MARINHO */
     h1, h2, h3, h4, p, span, label, div, small, .stMarkdown { 
         color: #002D5E !important; 
-        font-family: 'Arial', sans-serif !important; 
     }
     
-    /* Cor Azul específica para os rótulos de campos (letras menores) */
-    .stTextInput label, .stSelectbox label, .stDateInput label, .stTextArea label, [data-testid="stHeader"] {
+    /* Rótulos dos campos em Azul e Negrito */
+    .stTextInput label, .stSelectbox label, .stDateInput label, .stTextArea label {
         color: #002D5E !important;
         font-weight: bold !important;
     }
 
-    /* Botão Azul com Borda Ocre */
+    /* Botão Azul Aura */
     .stButton>button {
         background-color: #002D5E; color: white !important;
         border: 2px solid #FFC20E; border-radius: 5px;
@@ -45,22 +39,26 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (Nomes fixos para não "limpar" as abas)
+# 2. BANCO DE DADOS (NOMES FIXOS PARA NÃO PERDER DADOS)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
 def carregar_dados():
-    cols_v = ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]
+    cols_v = ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao", "Valor"]
     if not os.path.exists(DB_V): pd.DataFrame(columns=cols_v).to_csv(DB_V, index=False)
-    if not os.path.exists(DB_P): pd.DataFrame(columns=["Nome", "Centro_Custo"]).to_csv(DB_P, index=False)
+    if not os.path.exists(DB_P): pd.DataFrame(columns=["Nome", "CC_Padrao"]).to_csv(DB_P, index=False)
     
     v = pd.read_csv(DB_V).fillna("")
     p = pd.read_csv(DB_P).fillna("")
+    
+    # FORÇAR COLUNAS (Evita o erro de tela em branco)
+    for c in cols_v:
+        if c not in v.columns: v[c] = ""
     return v, p
 
 df_v, df_p = carregar_dados()
 
-# 3. SIDEBAR
+# 3. BARRA LATERAL
 with st.sidebar:
     st.markdown("""<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
@@ -71,31 +69,28 @@ with st.sidebar:
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
     if not df_v.empty:
-        st.dataframe(df_v, use_container_width=True, hide_index=True)
+        st.table(df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]])
     else:
         st.write("Nenhuma viagem programada.")
 
 elif menu == "📝 Programar Viagem":
     st.header("📝 Programar Viagem")
     if df_p.empty:
-        st.error("⚠️ ABA EM BRANCO: Cadastre um viajante primeiro para habilitar esta função.")
+        st.error("⚠️ Cadastre um viajante primeiro.")
     else:
         with st.form("form_viagem"):
             c1, c2 = st.columns(2)
             p_sel = c1.selectbox("Passageiro*", df_p["Nome"].tolist())
             mot_v = c1.selectbox("Motorista*", ["Ilson", "Antonio"])
             data_v = c1.date_input("Data", datetime.now())
-            
             saida_v = c2.text_input("Saída*")
             voo_v = c2.text_input("Voo")
             hosp_v = c2.text_input("Hospedagem")
-            
             traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
             obs_v = st.text_area("Observação")
-            
             if st.form_submit_button("✅ SALVAR"):
-                nova_v = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
-                pd.concat([df_v, nova_v], ignore_index=True).to_csv(DB_V, index=False)
+                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
+                pd.concat([df_v, nova], ignore_index=True).to_csv(DB_V, index=False)
                 st.success("Salvo!")
                 st.rerun()
 
@@ -108,12 +103,12 @@ elif menu == "👤 Cadastrar Viajante":
                 pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
                 st.success(f"{n} cadastrado!")
                 st.rerun()
-    st.dataframe(df_p, use_container_width=True)
+    st.dataframe(df_p)
 
 elif menu == "💰 Financeiro":
-    st.header("💰 Financeiro")
-    if not df_v.empty:
-        df_ed = st.data_editor(df_v)
-        if st.button("Salvar"):
-            df_ed.to_csv(DB_V, index=False)
-            st.success("Atualizado!")
+    st.header("💰 Controle Financeiro")
+    # O editor agora força a exibição dos dados existentes
+    df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
+    if st.button("💾 SALVAR ALTERAÇÕES"):
+        df_editado.to_csv(DB_V, index=False)
+        st.success("Financeiro Atualizado!")
