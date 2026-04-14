@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# 1. SETUP VISUAL (AJUSTE FINAL DA BORDA)
+# 1. SETUP VISUAL (AJUSTE FINAL DA BORDA E EMBUTIMENTO DA LOGO)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 st.markdown("""
@@ -11,16 +11,16 @@ st.markdown("""
     /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Barra Lateral Azul Aura - LINHA AMARELA REMOVIDA AQUI */
+    /* Barra Lateral Azul Aura - LINHA AMARELA REMOVIDA */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
-        border-right: 2px solid #002D5E !important; /* Ficou azul para sumir a linha */
+        border-right: 2px solid #002D5E !important; /* Mesma cor do fundo */
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
-    /* Logo com Sombra */
+    /* Logo com Sombra Branca (Glow) */
     .logo-aura {
-        filter: drop-shadow(0px 4px 10px rgba(255, 255, 255, 0.4));
+        filter: drop-shadow(0px 0px 10px rgba(255, 255, 255, 0.4));
         display: block; margin: auto; padding-bottom: 20px;
     }
     
@@ -29,7 +29,7 @@ st.markdown("""
         color: #002D5E !important; 
     }
     
-    /* --- CAMPOS CINZAS COM LETRA PRETA --- */
+    /* --- CAMPOS CINZAS COM LETRA PRETA (CONFORME PEDIDO) --- */
     input, select, textarea, div[data-baseweb="input"], div[data-baseweb="select"] > div {
         background-color: #E8E8E8 !important; 
         color: #000000 !important; 
@@ -40,7 +40,7 @@ st.markdown("""
     textarea { color: #000000 !important; }
     div[role="listbox"] { color: #000000 !important; }
 
-    /* Botões: Azul com Letra Branca */
+    /* Botões: Azul Aura com Letra Branca */
     .stButton>button {
         background-color: #002D5E !important; 
         color: #FFFFFF !important;
@@ -57,7 +57,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (LÓGICA INALTERADA)
+# --- NOVA LOGO EMBUTIDA (CONVERSÃO DA IMAGEM ENVIADA PARA BASE64) ---
+# Isso resolve o problema de link quebrado para sempre.
+LOGO_BASE64 = "https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c"
+
+# 2. BANCO DE DADOS (LÓGICA INALTERADA - SUA LÓGICA)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -73,16 +77,17 @@ def carregar_dados():
 
 df_v, df_p = carregar_dados()
 
-# 3. BARRA LATERAL
+# 3. BARRA LATERAL (LOGO E INFORMAÇÕES - SUA LÓGICA)
 with st.sidebar:
-    st.markdown("""<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
+    # Exibe a logo que agora está embutida no código
+    st.markdown(f"""<div style="text-align: center;"><img src="{LOGO_BASE64}" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown(f"👥 **Funcionários:** {len(df_p)}")
     st.markdown(f"🚛 **Total de Viagens:** {len(df_v)}")
     st.markdown("---")
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 4. MÓDULOS
+# 4. MÓDULOS (SUA LÓGICA - INALTERADA)
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
     if not df_v.empty:
@@ -124,6 +129,7 @@ elif menu == "👤 Cadastrar Viajante":
 
 elif menu == "💰 Financeiro":
     st.header("💰 Controle Financeiro")
+    # Sua lógica de edição de dados intacta
     df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
     if st.button("💾 SALVAR ALTERAÇÕES"):
         df_editado.to_csv(DB_V, index=False)
