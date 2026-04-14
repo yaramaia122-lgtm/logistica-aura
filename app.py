@@ -58,9 +58,8 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- NOVA LOGO EMBUTIDA (CONVERSÃO DA IMAGEM ENVIADA PARA BASE64) ---
-# Isso resolve o problema de link quebrado para sempre.
-# (Estou usando o código da imagem que você forneceu aqui)
-LOGO_BASE64 = "https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c"
+# Substituí o texto de exemplo pelo código real da imagem que você forneceu.
+LINK_DA_IMAGEM = "https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c"
 
 # 2. BANCO DE DADOS (LÓGICA INALTERADA - SUA LÓGICA)
 DB_V = "banco_viagens_oficial.csv"
@@ -80,8 +79,8 @@ df_v, df_p = carregar_dados()
 
 # 3. BARRA LATERAL (LOGO E INFORMAÇÕES - SUA LÓGICA)
 with st.sidebar:
-    # Exibe a logo que agora está embutida no código
-    st.markdown(f"""<div style="text-align: center;"><img src="{LOGO_BASE64}" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
+    # Exibe a logo que agora está com o endereço correto no código
+    st.markdown(f"""<div style="text-align: center;"><img src="{LINK_DA_IMAGEM}" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown(f"👥 **Funcionários:** {len(df_p)}")
     st.markdown(f"🚛 **Total de Viagens:** {len(df_v)}")
