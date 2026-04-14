@@ -119,6 +119,3 @@ elif menu == "💰 Financeiro":
             st.success("Custos salvos!")
         csv_fin = df_editado.to_csv(index=False).encode('utf-8-sig')
         st.download_button("📥 Baixar Relatório Financeiro", csv_fin, "financeiro_aura.csv")
-        
-        csv_fin = df_editado.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 Baixar Relatório Financeiro", csv_fin, "financeiro_aura.csv")
