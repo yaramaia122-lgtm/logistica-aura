@@ -1,67 +1,56 @@
 import streamlit as st
 import pandas as pd
 import os
+import base64
 from datetime import datetime
 
-# 1. SETUP VISUAL (AJUSTE FINAL DA BORDA E EMBUTIMENTO DA LOGO)
+# 1. SETUP VISUAL (CORES CINZA, PRETO E AZUL)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
+
+# Função para converter imagem local para Base64 (Garante que a logo carregue)
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
 st.markdown("""
     <style>
-    /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
-    
-    /* Barra Lateral Azul Aura - LINHA AMARELA REMOVIDA */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
-        border-right: 2px solid #002D5E !important; /* Mesma cor do fundo */
+        border-right: 2px solid #002D5E !important;
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
-    /* Logo com Sombra Branca (Glow) */
+    /* Sombra na Logo */
     .logo-aura {
         filter: drop-shadow(0px 0px 10px rgba(255, 255, 255, 0.4));
         display: block; margin: auto; padding-bottom: 20px;
     }
     
-    /* FONTES GERAIS E RÓTULOS EM AZUL MARINHO */
-    h1, h2, h3, h4, p, span, label, div, small { 
-        color: #002D5E !important; 
-    }
+    /* FONTES GERAIS EM AZUL MARINHO */
+    h1, h2, h3, h4, p, span, label, div, small { color: #002D5E !important; }
     
-    /* --- CAMPOS CINZAS COM LETRA PRETA (CONFORME PEDIDO) --- */
+    /* CAMPOS CINZAS COM LETRA PRETA */
     input, select, textarea, div[data-baseweb="input"], div[data-baseweb="select"] > div {
         background-color: #E8E8E8 !important; 
         color: #000000 !important; 
     }
-    
-    /* Texto digitado sempre preto */
     input { color: #000000 !important; }
     textarea { color: #000000 !important; }
-    div[role="listbox"] { color: #000000 !important; }
 
-    /* Botões: Azul Aura com Letra Branca */
+    /* BOTÃO AZUL AURA */
     .stButton>button {
         background-color: #002D5E !important; 
         color: #FFFFFF !important;
         border: 2px solid #FFC20E !important; 
         border-radius: 5px;
-        font-weight: bold; 
-        width: 100%;
-    }
-    
-    /* Financeiro com fundo cinza */
-    [data-testid="stDataEditor"] {
-        background-color: #E8E8E8 !important;
+        font-weight: bold; width: 100%;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- NOVA LOGO EMBUTIDA (CONVERSÃO DA IMAGEM ENVIADA PARA BASE64) ---
-# Substituí o texto de exemplo pelo código real da imagem que você forneceu.
-LINK_DA_IMAGEM = "https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c"
-
-# 2. BANCO DE DADOS (LÓGICA INALTERADA - SUA LÓGICA)
+# 2. BANCO DE DADOS (SUA LÓGICA INTACTA)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -77,17 +66,23 @@ def carregar_dados():
 
 df_v, df_p = carregar_dados()
 
-# 3. BARRA LATERAL (LOGO E INFORMAÇÕES - SUA LÓGICA)
+# 3. BARRA LATERAL (LOGO E TOTAIS)
 with st.sidebar:
-    # Exibe a logo que agora está com o endereço correto no código
-    st.markdown(f"""<div style="text-align: center;"><img src="{LINK_DA_IMAGEM}" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
+    # Tenta carregar a imagem localmente
+    img_path = "Aura (Azul e Ocre).png"
+    if os.path.exists(img_path):
+        img_base64 = get_base64_of_bin_file(img_path)
+        st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{img_base64}" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
+    else:
+        st.warning("⚠️ Arquivo 'Aura (Azul e Ocre).png' não encontrado na pasta.")
+    
     st.markdown("---")
     st.markdown(f"👥 **Funcionários:** {len(df_p)}")
     st.markdown(f"🚛 **Total de Viagens:** {len(df_v)}")
     st.markdown("---")
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 4. MÓDULOS (SUA LÓGICA - INALTERADA)
+# 4. MÓDULOS (SUA LÓGICA ORIGINAL)
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
     if not df_v.empty:
@@ -110,7 +105,7 @@ elif menu == "📝 Programar Viagem":
             hosp_v = c2.text_input("Hospedagem")
             traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
             obs_v = st.text_area("Observação")
-            if st.form_submit_button("✅ SALVAR PROGRAMAÇÃO"):
+            if st.form_submit_button("✅ SALVAR"):
                 nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
                 pd.concat([df_v, nova], ignore_index=True).to_csv(DB_V, index=False)
                 st.success("Salvo!")
@@ -120,7 +115,7 @@ elif menu == "👤 Cadastrar Viajante":
     st.header("👤 Cadastro")
     with st.form("cad"):
         n = st.text_input("Nome").upper()
-        if st.form_submit_button("CADASTRAR FUNCIONÁRIO"):
+        if st.form_submit_button("CADASTRAR"):
             if n:
                 pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
                 st.success(f"✅ {n} cadastrado!")
@@ -129,7 +124,6 @@ elif menu == "👤 Cadastrar Viajante":
 
 elif menu == "💰 Financeiro":
     st.header("💰 Controle Financeiro")
-    # Sua lógica de edição de dados intacta
     df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
     if st.button("💾 SALVAR ALTERAÇÕES"):
         df_editado.to_csv(DB_V, index=False)
