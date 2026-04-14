@@ -4,130 +4,130 @@ import os
 from datetime import datetime
 import base64
 
-# 1. FORÇAR TEMA CLARO E CORES DA AURA (OCRE, BRANCO E PRETO)
-st.set_page_config(page_title="Aura Minerals - Logística", layout="wide")
+# 1. IDENTIDADE VISUAL AURA MINERALS APOENA (RIGOROSO)
+# Restaurando Fundo Branco (#FFFFFF) e Menu Lateral Azul Aura (#002D5E)
+st.set_page_config(
+    page_title="Aura Minerals - Logística",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# CSS "Blindado" para garantir o fundo branco e visual profissional
+# Estilização CSS para forçar o Fundo Branco e Cores Institucionais
 st.markdown("""
     <style>
-    /* Forçar Fundo Branco */
+    /* Forçar Fundo Branco em toda a aplicação */
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Barra Lateral - Cor Ocre/Dourada da Aura */
+    /* Barra Lateral - Azul Aura Institucional */
     [data-testid="stSidebar"] {
-        background-color: #FFC20E !important;
-        border-right: 2px solid #000000;
+        background-color: #002D5E !important; 
+        border-right: 2px solid #FFC20E; /* Borda Ocre Aura */
     }
-    [data-testid="stSidebar"] * { color: #000000 !important; font-weight: bold; }
+    [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
-    /* Textos em Preto para leitura fácil */
-    h1, h2, h3, h4, label, p, span { 
-        color: #000000 !important; 
+    /* EFEITO DE SOMBRA NA LOGO (DROP-SHADOW) */
+    .logo-com-sombra {
+        filter: drop-shadow(0px 4px 8px rgba(0, 0, 0, 0.6));
+        transition: 0.3s;
+    }
+    .logo-com-sombra:hover {
+        filter: drop-shadow(0px 6px 12px rgba(0, 0, 0, 0.8));
+    }
+    
+    /* Títulos e Textos em Azul Aura para Fundo Branco */
+    h1, h2, h3, h4, p, span, label { 
+        color: #002D5E !important; 
         font-family: 'Arial', sans-serif !important; 
     }
     
-    /* Botões Pretos com texto Dourado */
+    /* Botões Padrão - Azul Aura com Texto Branco */
     .stButton>button {
-        background-color: #000000;
-        color: #FFC20E;
-        border: 2px solid #000000;
-        border-radius: 5px;
-        width: 100%;
+        background-color: #002D5E;
+        color: #FFFFFF;
+        border: 2px solid #FFC20E; 
+        border-radius: 4px;
+        font-weight: bold;
+        transition: 0.3s;
     }
     .stButton>button:hover {
-        background-color: #333333;
-        color: #FFFFFF;
+        background-color: #FFC20E;
+        color: #002D5E;
     }
     
-    /* Tabelas Brancas com bordas pretas */
-    .stTable { 
-        background-color: #FFFFFF !important; 
-        color: #000000 !important; 
-        border: 1px solid #000000; 
+    /* Botão de Download (Destaque Dourado/Ocre com texto Preto) */
+    .stDownloadButton>button {
+        background-color: #FFC20E !important;
+        color: #000000 !important;
+        font-weight: 800 !important;
+        border: 2px solid #000000 !important;
+    }
+    
+    /* Tabelas operacionais com alto contraste em Fundo Branco */
+    .stTable, [data-testid="stDataFrame"] {
+        background-color: #FFFFFF;
+        border: 1px solid #002D5E;
+        color: #002D5E !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. GESTÃO DE DADOS (VERSÃO V14 - RESET TOTAL)
-# Usar nomes novos para os arquivos não carregar erros antigos
-DB_V = "logistica_aura_v14_viagens.csv"
-DB_P = "logistica_aura_v14_passageiros.csv"
+# 2. INTELIGÊNCIA DE DADOS (BANCO DE DADOS LOCAL - VERSÃO V15.0)
+DB_VIAGENS = "logistica_aura_v15_viagens.csv"
+DB_PASSAGEIROS = "logistica_aura_v15_passageiros.csv"
 
 def carregar_bancos():
-    if not os.path.exists(DB_V):
-        pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao", "Hotel_RS", "Aereo_RS", "Combust_RS", "Total_RS"]).to_csv(DB_V, index=False)
-    if not os.path.exists(DB_P):
-        pd.DataFrame(columns=["Nome", "CC_Padrao"]).to_csv(DB_P, index=False)
-    return pd.read_csv(DB_V).fillna(""), pd.read_csv(DB_P).fillna("")
+    if not os.path.exists(DB_VIAGENS):
+        pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao", "Hotel_RS", "Aereo_RS", "Combust_RS", "Total_RS"]).to_csv(DB_VIAGENS, index=False)
+    if not os.path.exists(DB_PASSAGEIROS):
+        pd.DataFrame(columns=["Nome", "CC_Padrao"]).to_csv(DB_PASSAGEIROS, index=False)
+    return pd.read_csv(DB_VIAGENS).fillna(""), pd.read_csv(DB_PASSAGEIROS).fillna("")
 
 df_v, df_p = carregar_bancos()
 
-# 3. BARRA LATERAL (LOGO E MENU)
+# LISTA COMPLETA DE CENTROS DE CUSTO (STYLEGUIDE MAPA)
+LISTA_CC = sorted([
+    "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manut. Mecânica",
+    "210405 - Lixiviação planta", "210101 - Admin. planta", "211001 - Manut. Elétrica",
+    "320101 - Suprimentos", "320301 - RH", "121101 - Geologia Ernesto", "121001 - Planejamento Mina",
+    "310501 - Meio Ambiente", "310503 - Segurança Trabalho", "310502 - Saúde", "151101 - Geologia Nosde"
+])
+
+# 3. SIDEBAR COM IDENTIDADE VISUAL E LOGO COM SOMBRA
 with st.sidebar:
-    # Usando o link oficial da Aura para garantir que carregue
-    st.image("https://auraminerals.com/wp-content/themes/aura-minerals/assets/img/logo-aura.png", width=200)
+    # LINK OFICIAL DA LOGO QUE VOCÊ ENVIOU - AGORA COM EFEITO DE SOMBRA (drop-shadow)
+    # A classe CSS 'logo-com-sombra' aplica o efeito definido no CSS acima
+    st.markdown("""
+        <div style="text-align: center;">
+            <img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="200" class="logo-com-sombra">
+        </div>
+        """, unsafe_allow_html=True)
     st.markdown("---")
-    menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
+    st.markdown("<h3 style='color: #FFFFFF; text-align: center;'>LOGÍSTICA APOENA</h3>", unsafe_allow_html=True)
+    opcao = st.radio(
+        "Selecione o Módulo:",
+        ["📅 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"]
+    )
     st.markdown("---")
-    st.caption("Aura Minerals Apoena | v14.0")
+    st.caption("Aura Minerals Apoena | v15.0")
 
-# 4. MÓDULOS DO SISTEMA
+# 4. MÓDULOS OPERACIONAIS
 
-if menu == "📋 Agenda Motoristas":
-    st.header("Agenda de Logística Operacional")
+if opcao == "📅 Agenda Motoristas":
+    st.header("Agenda Operacional de Viagens")
     if not df_v.empty:
-        # Mostra apenas o que o motorista precisa ver
         agenda = df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]]
         st.table(agenda)
-        st.download_button("📥 Baixar Agenda (CSV)", agenda.to_csv(index=False).encode('utf-8-sig'), "agenda_motoristas.csv", "text/csv")
-    else:
-        st.info("Nenhuma viagem cadastrada no sistema.")
+        csv = agenda.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 Exportar Agenda (CSV)", csv, "agenda_motoristas.csv", "text/csv")
+    else: st.info("Nenhuma viagem programada.")
 
-elif menu == "📝 Programar Viagem":
-    st.header("Programar Nova Viagem")
+elif opcao == "📝 Programar Viagem":
+    st.header("📝 Nova Programação")
     if df_p.empty:
-        st.warning("⚠️ Cadastre um viajante primeiro no menu lateral.")
+        st.warning("⚠️ Cadastre o viajante primeiro no módulo '👤 Cadastrar Viajante'.")
     else:
-        # Busca passageiros cadastrados
+        # Busca passageiros e CC padrão de forma segura (previne ValueError)
         passag_lista = sorted(df_p["Nome"].tolist())
         p_sel = st.selectbox("Selecione o Passageiro", passag_lista)
-
-        with st.form("form_v14"):
-            c1, c2 = st.columns(2)
-            data_v = c1.date_input("Data da Viagem")
-            mot_v = c1.selectbox("Motorista", ["Ilson", "Antonio"])
-            saida_v = c1.text_input("Horário Saída")
-            voo_v = c2.text_input("Voo / Horário Chegada")
-            hosp_v = c2.text_input("Hotel / Destino")
-            obs_v = st.text_area("Observações (Aparece na Agenda)")
-            
-            if st.form_submit_button("✅ SALVAR NA AGENDA"):
-                nova_viagem = pd.DataFrame([{
-                    "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, 
-                    "CC": "Ver Cadastro", "Saida": saida_v, "Voo": voo_v, "Trajeto": "-", "Hospedagem": hosp_v,
-                    "Observacao": obs_v, "Hotel_RS": 0.0, "Aereo_RS": 0.0, "Combust_RS": 0.0, "Total_RS": 0.0
-                }])
-                pd.concat([df_v, nova_viagem], ignore_index=True).to_csv(DB_V, index=False)
-                st.success("Viagem salva com sucesso!")
-                st.rerun()
-
-elif menu == "👤 Cadastrar Viajante":
-    st.header("Cadastro de Funcionários")
-    with st.form("cad_p_v14"):
-        nome_n = st.text_input("Nome Completo").upper()
-        if st.form_submit_button("CADASTRAR"):
-            if nome_n:
-                novo_p = pd.DataFrame([{"Nome": nome_n, "CC_Padrao": "Geral"}])
-                pd.concat([df_p, novo_p], ignore_index=True).to_csv(DB_P, index=False)
-                st.success(f"{nome_n} cadastrado!")
-                st.rerun()
-
-elif menu == "💰 Financeiro":
-    st.header("Gestão de Custos")
-    if not df_v.empty:
-        df_ed = st.data_editor(df_v)
-        if st.button("Salvar Valores Financeiros"):
-            df_ed.to_csv(DB_V, index=False)
-            st.success("Dados Financeiros Atualizados!")
-    else:
-        st.info("Nenhuma viagem para calcular custos.")
+        cc_row = df_p[df_p["Nome"] == p_sel]["CC_Padrao"]
+        cc_sugerido = cc_row.iloc[0] if
