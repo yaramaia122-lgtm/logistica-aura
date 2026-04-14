@@ -1,76 +1,39 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-import os
-from datetime import datetime
 
-st.set_page_config(page_title="Logística Aura", layout="wide", page_icon="🚛")
+st.set_page_config(page_title="Logística Aura", layout="wide")
+st.title("🚛 Sistema de Logística Aura")
 
-# Nome do arquivo onde os dados serão guardados no servidor
-DB_FILE = "dados_logistica.csv"
+try:
+    # Tenta conectar no Google Sheets
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    df = conn.read(worksheet="Viagens")
+    
+    st.success("✅ Conectado à sua planilha oficial!")
+    
+    menu = st.sidebar.radio("Navegação", ["Agenda Atual", "Programar Viagem", "Lançar Custos"])
 
-# Função para carregar os dados
-def carregar_dados():
-    if os.path.exists(DB_FILE):
-        return pd.read_csv(DB_FILE)
-    else:
-        # Se não existir, cria a estrutura vazia
-        return pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "Area", "Saida", "Voo", "Trajeto"])
-
-# Função para salvar os dados
-def salvar_dados(df):
-    df.to_csv(DB_FILE, index=False)
-
-st.title("🚛 Sistema de Logística Aura - Lançador")
-st.markdown("---")
-
-menu = st.sidebar.radio("Navegação", ["Lançar Viagem", "Agenda e Exportação"])
-
-df = carregar_dados()
-
-if menu == "Lançar Viagem":
-    st.header("📝 Nova Programação")
-    with st.form("form_viagem", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            data = st.date_input("Data da Viagem", datetime.now())
-            motorista = st.selectbox("Motorista", ["Ilson", "Antonio", "Terceirizado"])
-            passageiro = st.text_input("Nome do Passageiro")
-            area = st.selectbox("Área", ["Moagem", "Laboratório", "Mina", "RH", "Segurança"])
-        
-        with col2:
-            saida = st.text_input("Horário de Saída (ex: 06:00)")
-            voo = st.text_input("Voo (ex: Latam 3895)")
-            trajeto = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA"])
-
-        if st.form_submit_button("✅ Salvar Viagem"):
-            if passageiro:
-                nova_linha = pd.DataFrame([{
-                    "Data": data.strftime('%d/%m/%Y'),
-                    "Motorista": motorista,
-                    "Passageiro": passageiro,
-                    "Area": area,
-                    "Saida": saida,
-                    "Voo": voo,
-                    "Trajeto": trajeto
-                }])
-                df = pd.concat([df, nova_linha], ignore_index=True)
-                salvar_dados(df)
-                st.success(f"Viagem de {passageiro} salva com sucesso!")
-            else:
-                st.error("Por favor, preencha o nome do passageiro.")
-
-elif menu == "Agenda e Exportação":
-    st.header("📊 Dados Registrados")
-    if not df.empty:
+    if menu == "Agenda Atual":
+        st.subheader("📋 Viagens Programadas")
         st.dataframe(df, use_container_width=True)
-        
-        # BOTÃO DE EXPORTAÇÃO
+        # Botão de exportar para você mandar por e-mail
         csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="📥 Baixar Planilha para Enviar",
-            data=csv,
-            file_name=f"logistica_aura_{datetime.now().strftime('%d_%m_%Y')}.csv",
-            mime="text/csv",
-        )
-    else:
-        st.info("Ainda não há dados lançados.")
+        st.download_button("📥 Baixar Planilha", data=csv, file_name="logistica_aura.csv")
+
+    elif menu == "Programar Viagem":
+        st.header("📝 Novo Lançamento")
+        with st.form("v_form"):
+            p = st.text_input("Passageiro")
+            m = st.selectbox("Motorista", ["Ilson", "Antonio"])
+            s = st.text_input("Saída")
+            v = st.text_input("Voo")
+            if st.form_submit_button("Salvar"):
+                nova_l = pd.DataFrame([{"Passageiro": p, "Motorista": m, "Saida": s, "Voo": v}])
+                atual = pd.concat([df, nova_l], ignore_index=True)
+                conn.update(worksheet="Viagens", data=atual)
+                st.success("Salvo na Planilha Google!")
+
+except Exception as e:
+    st.error("Erro de conexão. O sistema não achou sua planilha antiga.")
+    st.info("Se quiser usar o sistema 'em branco' sem erros, me avise!")
