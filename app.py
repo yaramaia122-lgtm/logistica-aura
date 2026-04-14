@@ -2,51 +2,48 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# 1. SETUP VISUAL (AZUL MARINHO, OCRE E BRANCO)
-st.set_page_config(page_title="Aura Minerals - Logística Apoena", layout="wide")
+# 1. SETUP VISUAL INSTITUCIONAL (AZUL MARINHO #002D5E)
+st.set_page_config(page_title="Aura Minerals - Logística", layout="wide")
 
 st.markdown("""
     <style>
-    /* Forçar Fundo Branco */
+    /* Forçar Fundo Branco e Menu Azul */
     .stApp { background-color: #FFFFFF !important; }
-    
-    /* Barra Lateral - Azul Marinho Aura */
-    [data-testid="stSidebar"] {
-        background-color: #002D5E !important;
-        border-right: 3px solid #FFC20E;
-    }
+    [data-testid="stSidebar"] { background-color: #002D5E !important; border-right: 2px solid #FFC20E; }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
-    /* SOMBRA NA LOGO (GLOW) */
+    /* Efeito Glow na Logo solicitado anteriormente */
     .logo-aura {
         filter: drop-shadow(0px 0px 10px rgba(255, 255, 255, 0.4));
         display: block; margin: auto; padding-bottom: 20px;
     }
     
-    /* Cores dos Textos */
-    h1, h2, h3, h4, label { color: #002D5E !important; font-family: 'Arial', sans-serif; }
+    /* Feedback de Mensagens (Sucesso/Erro) */
+    .stAlert { border-radius: 8px; font-weight: bold; }
     
-    /* Botões */
+    /* Títulos e Inputs */
+    h1, h2, h3, label { color: #002D5E !important; font-family: 'Arial', sans-serif; }
     .stButton>button {
-        background-color: #002D5E; color: white;
-        border: 1px solid #FFC20E; font-weight: bold;
+        background-color: #002D5E; color: white; border: 1px solid #FFC20E;
+        width: 100%; font-weight: bold; height: 3em;
     }
-    .stTable { background-color: white !important; border: 1px solid #002D5E; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. INICIALIZAÇÃO DA MEMÓRIA (TODOS OS CAMPOS RESTAURADOS)
-if 'db_viagens' not in st.session_state:
-    st.session_state.db_viagens = pd.DataFrame(columns=[
-        "Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"
+# 2. MOTOR DE DADOS (SESSION STATE PARA PERSISTÊNCIA NA SESSÃO)
+if 'viagens' not in st.session_state:
+    st.session_state.viagens = pd.DataFrame(columns=[
+        "Data", "Motorista", "Passageiro", "CC", "Saída", "Voo", "Trajeto", "Hospedagem", "Observação"
     ])
 
-if 'db_passageiros' not in st.session_state:
-    st.session_state.db_passageiros = pd.DataFrame(columns=["Nome"])
+if 'funcionarios' not in st.session_state:
+    st.session_state.funcionarios = pd.DataFrame(columns=["Nome", "Setor"])
 
-# 3. BARRA LATERAL (LOGO E NAVEGAÇÃO)
+# Centros de Custo Oficiais
+LISTA_CC = sorted(["210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manut. Mecânica", "320101 - Suprimentos", "320301 - RH", "310501 - Meio Ambiente"])
+
+# 3. BARRA LATERAL
 with st.sidebar:
-    # Logo com sombra
     st.markdown("""
         <div style="text-align: center;">
             <img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" 
@@ -54,65 +51,47 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     st.markdown("---")
-    menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
+    menu = st.radio("MÓDULOS DO SISTEMA", ["📋 Painel de Agenda", "📝 Programar Viagem", "👤 Gestão de Funcionários", "💰 Controle Financeiro"])
+    st.markdown("---")
+    st.caption("Aura Minerals | Unidade Apoena")
 
-# 4. MÓDULOS
+# 4. EXECUÇÃO DOS MÓDULOS
 
-if menu == "📋 Agenda Motoristas":
-    st.header("📋 Agenda de Viagens Operacionais")
-    if not st.session_state.db_viagens.empty:
-        st.table(st.session_state.db_viagens)
+# --- MÓDULO: AGENDA ---
+if menu == "📋 Painel de Agenda":
+    st.header("📋 Agenda de Viagens Ativas")
+    if not st.session_state.viagens.empty:
+        st.table(st.session_state.viagens)
     else:
-        st.info("Nenhuma viagem programada.")
+        st.info("ℹ️ Nenhuma viagem programada no momento.")
 
+# --- MÓDULO: PROGRAMAÇÃO ---
 elif menu == "📝 Programar Viagem":
-    st.header("📝 Programar Nova Viagem")
-    if st.session_state.db_passageiros.empty:
-        st.warning("⚠️ Vá em 'Cadastrar Viajante' e adicione um nome primeiro.")
+    st.header("📝 Nova Programação de Transporte")
+    
+    if st.session_state.funcionarios.empty:
+        st.error("❌ ERRO: Não há funcionários cadastrados. Acesse 'Gestão de Funcionários'.")
     else:
-        # FORMULÁRIO COM TODOS OS CAMPOS QUE VOCÊ TINHA ANTES
-        with st.form("form_completo", clear_on_submit=True):
+        with st.form("form_viagem", clear_on_submit=True):
             col1, col2 = st.columns(2)
             
-            p_sel = col1.selectbox("Passageiro", st.session_state.db_passageiros["Nome"].tolist())
-            mot_v = col1.selectbox("Motorista", ["Ilson", "Antonio"])
+            p_sel = col1.selectbox("Passageiro (Obrigatório)", st.session_state.funcionarios["Nome"].tolist())
+            mot_v = col1.selectbox("Motorista Designado", ["Ilson", "Antonio"])
             data_v = col1.date_input("Data da Viagem", datetime.now())
             
-            saida_v = col2.text_input("Horário de Saída")
-            voo_v = col2.text_input("Voo / Horário de Chegada")
-            hosp_v = col2.text_input("Hotel / Destino Final")
+            saida_v = col2.text_input("Horário de Saída (Ex: 07:30)")
+            voo_v = col2.text_input("Informação de Voo (Se houver)")
+            hosp_v = col2.text_input("Hospedagem / Destino Final")
             
             st.write("---")
-            traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
-            obs_v = st.text_area("Observações para o Motorista")
+            traj_v = st.selectbox("Trajeto Sugerido", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
+            cc_v = st.selectbox("Centro de Custo para Rateio", LISTA_CC)
+            obs_v = st.text_area("Observações Importantes para o Motorista")
             
-            if st.form_submit_button("✅ SALVAR PROGRAMAÇÃO"):
-                nova_v = pd.DataFrame([{
-                    "Data": data_v.strftime('%d/%m/%Y'), 
-                    "Motorista": mot_v, 
-                    "Passageiro": p_sel, 
-                    "Saida": saida_v, 
-                    "Voo": voo_v, 
-                    "Trajeto": traj_v, 
-                    "Hospedagem": hosp_v, 
-                    "Observacao": obs_v
-                }])
-                st.session_state.db_viagens = pd.concat([st.session_state.db_viagens, nova_v], ignore_index=True)
-                st.success("Viagem salva com sucesso!")
-                st.rerun()
-
-elif menu == "👤 Cadastrar Viajante":
-    st.header("👤 Cadastro de Funcionário")
-    with st.form("cad_f"):
-        n_novo = st.text_input("Nome Completo").upper()
-        if st.form_submit_button("CADASTRAR"):
-            if n_novo:
-                novo_df = pd.DataFrame([{"Nome": n_novo}])
-                st.session_state.db_passageiros = pd.concat([st.session_state.db_passageiros, novo_df], ignore_index=True)
-                st.success(f"{n_novo} cadastrado!")
-                st.rerun()
-
-elif menu == "💰 Financeiro":
-    st.header("💰 Controle Financeiro")
-    # Permite editar a tabela de viagens diretamente
-    st.session_state.db_viagens = st.data_editor(st.session_state.db_viagens)
+            if st.form_submit_button("CONFIRMAR E SALVAR PROGRAMAÇÃO"):
+                if not saida_v:
+                    st.warning("⚠️ O campo 'Horário de Saída' é obrigatório para o motorista.")
+                else:
+                    nova_v = pd.DataFrame([{
+                        "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, 
+                        "CC": cc_v, "Saída": saida_v, "Voo": voo_v, "
