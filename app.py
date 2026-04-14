@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# 1. SETUP VISUAL DETALHADO
+# 1. SETUP VISUAL (AJUSTE ESPECÍFICO DE CORES)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 st.markdown("""
@@ -35,18 +35,20 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* --- AJUSTE DOS CAMPOS DE PREENCHIMENTO (INPUTS) --- */
-    /* Fundo Cinza e Letra Preta dentro das caixas */
-    input, select, textarea, .stSelectbox div[data-baseweb="select"] {
-        background-color: #F0F2F6 !important; /* Cinza Claro */
+    /* --- AJUSTE SOLICITADO: CAMPOS CINZAS COM LETRA PRETA --- */
+    input, select, textarea {
+        background-color: #E8E8E8 !important; /* Cinza */
         color: #000000 !important; /* Letra Preta */
-        border: 1px solid #002D5E !important;
     }
     
-    /* Garantir que o texto digitado seja preto */
-    .stTextInput input, .stTextArea textarea, .stDateInput input {
+    /* Garante que o texto digitado em caixas do Streamlit fique preto */
+    div[data-baseweb="input"] > div, div[data-baseweb="select"] > div, textarea {
+        background-color: #E8E8E8 !important;
         color: #000000 !important;
     }
+    
+    /* Cor da letra preta dentro dos campos */
+    input { color: #000000 !important; }
 
     /* Botão Azul Aura */
     .stButton>button {
@@ -57,7 +59,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS
+# 2. BANCO DE DADOS (MANTIDO EXATAMENTE IGUAL)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -73,7 +75,7 @@ def carregar_dados():
 
 df_v, df_p = carregar_dados()
 
-# 3. BARRA LATERAL (LOGO E INFORMAÇÕES)
+# 3. BARRA LATERAL (LOGO E INFORMAÇÕES DE TOTAIS MANTIDAS)
 with st.sidebar:
     st.markdown("""<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
@@ -85,7 +87,7 @@ with st.sidebar:
     
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 4. MÓDULOS
+# 4. MÓDULOS (LÓGICA INALTERADA)
 
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
@@ -110,4 +112,25 @@ elif menu == "📝 Programar Viagem":
             traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
             obs_v = st.text_area("Observação")
             if st.form_submit_button("✅ SALVAR"):
-                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel,
+                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
+                pd.concat([df_v, nova], ignore_index=True).to_csv(DB_V, index=False)
+                st.success("Salvo!")
+                st.rerun()
+
+elif menu == "👤 Cadastrar Viajante":
+    st.header("👤 Cadastro")
+    with st.form("cad"):
+        n = st.text_input("Nome").upper()
+        if st.form_submit_button("CADASTRAR"):
+            if n:
+                pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
+                st.success(f"✅ {n} cadastrado!")
+                st.rerun()
+    st.dataframe(df_p)
+
+elif menu == "💰 Financeiro":
+    st.header("💰 Controle Financeiro")
+    df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
+    if st.button("💾 SALVAR ALTERAÇÕES"):
+        df_editado.to_csv(DB_V, index=False)
+        st.success("✅ Financeiro Atualizado!")
