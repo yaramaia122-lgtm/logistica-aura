@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# 1. SETUP VISUAL (FOCO TOTAL NAS CORES SOLICITADAS)
+# 1. SETUP VISUAL (AJUSTE FINAL DA BORDA)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 st.markdown("""
@@ -11,10 +11,10 @@ st.markdown("""
     /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Barra Lateral Azul Aura */
+    /* Barra Lateral Azul Aura - LINHA AMARELA REMOVIDA AQUI */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
-        border-right: 3px solid #FFC20E;
+        border-right: 2px solid #002D5E !important; /* Ficou azul para sumir a linha */
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
@@ -29,19 +29,18 @@ st.markdown("""
         color: #002D5E !important; 
     }
     
-    /* --- AJUSTE DE CORES DOS CAMPOS (INPUTS) --- */
-    /* Fundo Cinza e Letra Preta em todos os campos de preenchimento */
+    /* --- CAMPOS CINZAS COM LETRA PRETA --- */
     input, select, textarea, div[data-baseweb="input"], div[data-baseweb="select"] > div {
         background-color: #E8E8E8 !important; 
         color: #000000 !important; 
     }
     
-    /* Forçar letra preta ao digitar */
+    /* Texto digitado sempre preto */
     input { color: #000000 !important; }
     textarea { color: #000000 !important; }
     div[role="listbox"] { color: #000000 !important; }
 
-    /* Botão Salvar/Cadastrar: Azul com Letra Branca */
+    /* Botões: Azul com Letra Branca */
     .stButton>button {
         background-color: #002D5E !important; 
         color: #FFFFFF !important;
@@ -51,14 +50,14 @@ st.markdown("""
         width: 100%;
     }
     
-    /* Estilo do Financeiro (Data Editor) para seguir o cinza */
+    /* Financeiro com fundo cinza */
     [data-testid="stDataEditor"] {
         background-color: #E8E8E8 !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (MESMA LÓGICA ANTERIOR - SEM ALTERAÇÃO)
+# 2. BANCO DE DADOS (LÓGICA INALTERADA)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -74,7 +73,7 @@ def carregar_dados():
 
 df_v, df_p = carregar_dados()
 
-# 3. BARRA LATERAL (CONSERVANDO OS TOTAIS)
+# 3. BARRA LATERAL
 with st.sidebar:
     st.markdown("""<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
@@ -83,8 +82,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 4. MÓDULOS (LÓGICA PRESERVADA)
-
+# 4. MÓDULOS
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
     if not df_v.empty:
