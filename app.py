@@ -1,51 +1,81 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
+from datetime import datetime
 
 # Configuração da página
-st.set_page_config(page_title="Logística Aura", layout="wide")
+st.set_page_config(page_title="Logística Aura", layout="wide", page_icon="🚛")
 
-st.title("🚛 Logística Aura - Controle de Viagens")
+st.title("🚛 Logística Aura - Sistema de Controle")
 
-# Tentar conectar com a planilha
+# 1. TENTATIVA DE CONEXÃO
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
     
-    # Tentar ler a aba de Viagens
-    df = conn.read(worksheet="Viagens")
+    # Tentativa de ler os dados existentes
+    df_viagens = conn.read(worksheet="Viagens", ttl=0)
     
-    st.success("✅ Conectado com sucesso à planilha!")
+    st.sidebar.success("✅ Planilha Conectada!")
     
-    # Menu Lateral
-    menu = st.sidebar.selectbox("O que deseja fazer?", ["Ver Agenda", "Programar Viagem", "Lançar Custos"])
+    menu = st.sidebar.radio("Navegação", ["Agenda do Dia", "Programar Viagem", "Lançar Custos"])
 
-    if menu == "Ver Agenda":
-        st.header("📋 Agenda do Dia (Motoristas)")
-        if not df.empty:
-            st.dataframe(df)
+    # --- ABA: AGENDA DO DIA ---
+    if menu == "Agenda do Dia":
+        st.header("📋 Agenda Operacional")
+        if not df_viagens.empty:
+            # Filtra apenas o que é importante para o motorista ver
+            st.dataframe(df_viagens, use_container_width=True)
         else:
-            st.info("A aba 'Viagens' está vazia. Comece a programar!")
+            st.info("Nenhuma viagem programada na aba 'Viagens'.")
 
+    # --- ABA: PROGRAMAR VIAGEM ---
     elif menu == "Programar Viagem":
-        st.header("📝 Nova Programação")
-        with st.form("form_viagem"):
-            data = st.date_input("Data da Viagem")
-            motorista = st.selectbox("Motorista", ["Ilson", "Antonio"])
-            passageiro = st.text_input("Nome do Passageiro")
-            saida = st.text_input("Horário de Saída (ex: 06:00)")
-            voo = st.text_input("Voo (ex: Latam 3895)")
+        st.header("📝 Cadastrar Nova Viagem")
+        
+        with st.form("novo_registro"):
+            col1, col2 = st.columns(2)
+            with col1:
+                data = st.date_input("Data", datetime.now())
+                motorista = st.selectbox("Motorista", ["Ilson", "Antonio"])
+                passageiro = st.text_input("Nome do Passageiro")
+            with col2:
+                saida = st.text_input("Horário Saída (ex: 06:00)")
+                voo = st.text_input("Voo/Horário (ex: Latam 3895 - 04:35)")
+                trajeto = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA"])
             
-            botao = st.form_submit_button("Salvar Viagem")
-            
-            if botao:
-                st.warning("Função de salvar sendo ativada... Verifique se a planilha está como EDITOR.")
+            submit = st.form_submit_button("Confirmar e Salvar")
+
+            if submit:
+                if passageiro:
+                    # Cria a nova linha
+                    nova_linha = pd.DataFrame([{
+                        "Data": data.strftime('%d/%m/%Y'),
+                        "Motorista": motorista,
+                        "Passageiro": passageiro,
+                        "Saida": saida,
+                        "Voo": voo,
+                        "Trajeto": trajeto,
+                        "Status": "Pendente"
+                    }])
+                    
+                    # Tenta salvar na planilha
+                    try:
+                        updated_df = pd.concat([df_viagens, nova_linha], ignore_index=True)
+                        conn.update(worksheet="Viagens", data=updated_df)
+                        st.success(f"✅ Viagem de {passageiro} salva com sucesso!")
+                        st.balloons()
+                    except Exception as e_save:
+                        st.error(f"Erro ao salvar: Verifique se a planilha está como EDITOR. Detalhe: {e_save}")
+                else:
+                    st.warning("Por favor, preencha o nome do passageiro.")
 
 except Exception as e:
-    st.error("❌ Erro de Conexão!")
-    st.write("Verifique se:")
-    st.write("1. O link na Secrets está correto e entre aspas.")
-    st.write("2. A planilha está compartilhada como 'Qualquer pessoa com o link' pode EDITAR.")
-    st.write("3. O nome da aba na planilha é exatamente 'Viagens'.")
-    # Mostra o erro real para o suporte se precisar
-    if "401" in str(e) or "403" in str(e):
-        st.info("Dica: O Google está bloqueando o acesso. Mude a planilha para 'Qualquer pessoa com o link' -> 'Editor'.")
+    st.error("❌ Falha crítica de conexão!")
+    st.info("Abaixo está o motivo técnico. Se possível, tire um print desta parte:")
+    st.code(str(e))
+    
+    st.markdown("""
+    ### 🛠️ Como resolver agora:
+    1. **Na Planilha:** Clique em 'Compartilhar' -> Mude para **'Qualquer pessoa com o link'** -> Mude para **'Editor'**.
+    2. **No Streamlit (Secrets):** Verifique se o link termina em `/edit#gid=0` e está entre aspas.
+    """)
