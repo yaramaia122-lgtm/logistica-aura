@@ -14,8 +14,7 @@ def carregar(file, cols):
     if os.path.exists(file): 
         try:
             df = pd.read_csv(file)
-            if df.empty: return pd.DataFrame(columns=cols)
-            return df
+            return df if not df.empty else pd.DataFrame(columns=cols)
         except: return pd.DataFrame(columns=cols)
     return pd.DataFrame(columns=cols)
 
@@ -26,7 +25,7 @@ def salvar(df, file):
 df_v = carregar(DB_VIAGENS, ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Hotel_Valor", "Aereo_Valor", "Combustivel", "Total"])
 df_p = carregar(DB_PASSAGEIROS, ["Nome", "Centro_Custo_Padrao"])
 
-# LISTA INTEGRAL DE CENTROS DE CUSTO
+# LISTA INTEGRAL DE CENTROS DE CUSTO (A mesma do cadastro)
 LISTA_CC = sorted([
     "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
     "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
@@ -45,8 +44,8 @@ LISTA_CC = sorted([
     "121104 - Geotecnia - Ernesto", "121105 - Hidrogeologia - Ernesto"
 ])
 
-st.title("🚛 Gestão de Logística Aura")
-menu = st.sidebar.radio("Navegação", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
+st.sidebar.title("Navegação")
+menu = st.sidebar.radio("Ir para:", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
 # 1. AGENDA
 if menu == "📋 Agenda Motoristas":
@@ -55,45 +54,36 @@ if menu == "📋 Agenda Motoristas":
         agenda = df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem"]]
         st.dataframe(agenda, use_container_width=True)
         csv = agenda.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 Baixar Agenda", csv, "agenda.csv", "text/csv", key='btn_agenda_v3')
+        st.download_button("📥 Baixar Agenda", csv, "agenda.csv", "text/csv", key='btn_agenda_v4')
     else: st.info("Nenhuma viagem programada.")
 
-# 2. PROGRAMAR VIAGEM (VERSÃO BLINDADA)
+# 2. PROGRAMAR VIAGEM
 elif menu == "📝 Programar Viagem":
     st.header("📝 Nova Programação")
     if df_p.empty:
         st.warning("⚠️ Cadastre um viajante primeiro!")
     else:
-        # Primeiro seleciona o passageiro
         nome_sel = st.selectbox("Escolha o Passageiro", sorted(df_p["Nome"].tolist()))
-        
-        # Busca o CC padrão de forma segura
         cc_base = df_p[df_p["Nome"] == nome_sel]["Centro_Custo_Padrao"].iloc[0]
         
-        # Cria o formulário
-        with st.form("form_viagem_v3", clear_on_submit=True):
+        with st.form("form_viagem_v4", clear_on_submit=True):
             col1, col2 = st.columns(2)
             data_v = col1.date_input("Data da Viagem")
             mot_v = col1.selectbox("Motorista", ["Ilson", "Antonio"])
             
-            # Centro de custo editável
-            try:
-                idx_default = LISTA_CC.index(cc_base)
-            except:
-                idx_default = 0
+            try: idx_default = LISTA_CC.index(cc_base)
+            except: idx_default = 0
             
             cc_v = col2.selectbox("Centro de Custo desta Viagem", LISTA_CC, index=idx_default)
-            
             saida_v = col1.text_input("Horário Saída")
             voo_v = col2.text_input("Voo / Horário")
             
             st.write("---")
             traj_s = st.selectbox("Trajeto Principal", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
-            traj_m = st.text_input("Se marcou 'OUTRO', digite o local:")
+            traj_m = st.text_input("Se selecionou 'OUTRO', digite o local:")
+            hosp_v = st.text_input("Hotel / Destino Final")
             
-            hosp_v = st.text_input("Hotel / Destino Final (Ex: Cerrados, Aeroporto)")
-            
-            if st.form_submit_button("✅ Confirmar e Salvar"):
+            if st.form_submit_button("✅ Salvar Viagem"):
                 t_final = traj_m if traj_s == "OUTRO" else traj_s
                 nova = pd.DataFrame([{
                     "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": nome_sel, 
@@ -102,13 +92,13 @@ elif menu == "📝 Programar Viagem":
                 }])
                 df_v = pd.concat([df_v, nova], ignore_index=True)
                 salvar(df_v, DB_VIAGENS)
-                st.success("Viagem salva!")
+                st.success("Salvo!")
                 st.rerun()
 
 # 3. CADASTRAR VIAJANTE
 elif menu == "👤 Cadastrar Viajante":
     st.header("👤 Cadastro de Funcionário")
-    with st.form("f_p_v3", clear_on_submit=True):
+    with st.form("f_p_v4", clear_on_submit=True):
         n = st.text_input("Nome Completo").upper()
         c = st.selectbox("Centro de Custo Padrão", LISTA_CC)
         if st.form_submit_button("Cadastrar"):
@@ -116,21 +106,29 @@ elif menu == "👤 Cadastrar Viajante":
                 nova_p = pd.DataFrame([{"Nome": n, "Centro_Custo_Padrao": c}])
                 df_p = pd.concat([df_p, nova_p], ignore_index=True)
                 salvar(df_p, DB_PASSAGEIROS)
-                st.success(f"Funcionário {n} cadastrado!")
+                st.success(f"{n} cadastrado!")
                 st.rerun()
 
-# 4. FINANCEIRO
+# 4. FINANCEIRO (AGORA COM LISTA SUSPENSA NA COLUNA CC)
 elif menu == "💰 Financeiro":
-    st.header("💰 Gestão de Custos")
+    st.header("💰 Gestão de Custos e Rateio")
     if not df_v.empty:
-        # Usando data_editor para facilitar a digitação
-        df_ed = st.data_editor(df_v, key="ed_fin_v3")
-        df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel"]
+        st.write("Clique na célula da coluna **CC** para mudar o Centro de Custo usando a lista:")
         
-        if st.button("💾 Salvar Alterações Financeiras"):
-            salvar(df_ed, DB_VIAGENS)
-            st.success("Valores atualizados!")
+        # CONFIGURAÇÃO DA LISTA SUSPENSA NA TABELA
+        df_ed = st.data_editor(
+            df_v,
+            column_config={
+                "CC": st.column_config.SelectboxColumn(
+                    "Centro de Custo",
+                    help="Selecione o setor para o rateio",
+                    width="medium",
+                    options=LISTA_CC,
+                    required=True,
+                )
+            },
+            key="editor_financeiro_v4",
+            use_container_width=True
+        )
         
-        csv_f = df_ed.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 Baixar Relatório Completo", csv_f, "financeiro_aura.csv", key='btn_fin_v3')
-    else: st.info("Lance viagens primeiro.")
+        #
