@@ -1,18 +1,20 @@
 import streamlit as st
 import pandas as pd
 import os
-import base64
+import base64  # <--- ESSENCIAL: Conserta o erro de NameError
 from datetime import datetime
 
 # 1. SETUP VISUAL (CONTRASTE TOTAL: CINZA E AZUL ESCURO)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
-# Função para converter imagem local para Base64
+# Função segura para carregar a logo
 def get_base64_of_bin_file(bin_file):
     if os.path.exists(bin_file):
-        with open(bin_file, 'rb') as f:
-            data = f.read()
-        return base64.b64encode(data).decode()
+        try:
+            with open(bin_file, 'rb') as f:
+                data = f.read()
+            return base64.b64encode(data).decode()
+        except: return None
     return None
 
 st.markdown("""
@@ -20,7 +22,7 @@ st.markdown("""
     /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Barra Lateral - Azul Marinho Aura */
+    /* Barra Lateral Azul Marinho Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         border-right: none !important;
@@ -38,18 +40,14 @@ st.markdown("""
         color: #002D5E !important; 
     }
     
-    /* --- CORREÇÃO DEFINITIVA: CAMPOS CINZAS COM LETRA AZUL ESCURO --- */
-    /* Alvo: Inputs de texto, selectbox, dateinput e textarea */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stTextArea textarea, 
-    div[data-baseweb="input"], div[data-baseweb="base-input"], textarea {
-        background-color: #E8E8E8 !important; /* Cinza Claro */
-        color: #002D5E !important; /* Letra Azul Escuro */
-        border: 1px solid #002D5E !important;
-    }
-
-    /* Forçar a cor do texto digitado e selecionado */
-    input, select, textarea, span[data-baseweb="select"] {
-        color: #002D5E !important;
+    /* --- CSS NUCLEAR: TIRA O PRETO E COLOCA CINZA/AZUL EM TUDO --- */
+    input, select, textarea, 
+    div[data-baseweb="input"], 
+    div[data-baseweb="base-input"], 
+    div[data-baseweb="select"] > div,
+    .stTextInput input, .stSelectbox div, .stDateInput input, .stTextArea textarea {
+        background-color: #E8E8E8 !important; /* Cinza */
+        color: #002D5E !important; /* Azul Escuro */
         -webkit-text-fill-color: #002D5E !important;
     }
 
@@ -62,7 +60,7 @@ st.markdown("""
         font-weight: bold; width: 100%;
     }
     
-    /* Financeiro (Editor) */
+    /* Editor Financeiro */
     [data-testid="stDataEditor"] {
         background-color: #E8E8E8 !important;
     }
@@ -87,11 +85,12 @@ df_v, df_p = carregar_dados()
 
 # 3. BARRA LATERAL (LOGO E TOTAIS)
 with st.sidebar:
-    img_path = "Aura (Azul e Ocre).png"
-    img_b64 = get_base64_of_bin_file(img_path)
+    # Tenta carregar a imagem Aura (Azul e Ocre).png
+    img_b64 = get_base64_of_bin_file("Aura (Azul e Ocre).png")
     if img_b64:
         st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{img_b64}" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
     else:
+        # Fallback caso a imagem não esteja na pasta
         st.markdown(f'<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
     
     st.markdown("---")
@@ -100,7 +99,7 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 4. MÓDULOS (LÓGICA INALTERADA)
+# 4. MÓDULOS (SUA LÓGICA ORIGINAL)
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
     if not df_v.empty:
@@ -121,4 +120,28 @@ elif menu == "📝 Programar Viagem":
             saida_v = c2.text_input("Saída*")
             voo_v = c2.text_input("Voo")
             hosp_v = c2.text_input("Hospedagem")
-            traj_v = st.selectbox("Trajeto", ["P. LAC
+            traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
+            obs_v = st.text_area("Observação")
+            if st.form_submit_button("✅ SALVAR PROGRAMAÇÃO"):
+                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
+                pd.concat([df_v, nova], ignore_index=True).to_csv(DB_V, index=False)
+                st.success("Salvo!")
+                st.rerun()
+
+elif menu == "👤 Cadastrar Viajante":
+    st.header("👤 Cadastro")
+    with st.form("cad"):
+        n = st.text_input("Nome").upper()
+        if st.form_submit_button("CADASTRAR"):
+            if n:
+                pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
+                st.success(f"✅ {n} cadastrado!")
+                st.rerun()
+    st.dataframe(df_p)
+
+elif menu == "💰 Financeiro":
+    st.header("💰 Controle Financeiro")
+    df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
+    if st.button("💾 SALVAR ALTERAÇÕES"):
+        df_editado.to_csv(DB_V, index=False)
+        st.success("✅ Financeiro Atualizado!")
