@@ -3,30 +3,23 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# ----------------------------------------------------------------
-# 1. CONFIGURAÇÃO VISUAL RIGOROSA (STYLEGUIDE AURA)
-# ----------------------------------------------------------------
-st.set_page_config(
-    page_title="Aura Minerals - Logística Apoena",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+# 1. SETUP VISUAL RIGOROSO (STYLEGUIDE AURA)
+st.set_page_config(page_title="Aura Minerals - Logística Apoena", layout="wide")
 
-# Forçando o CSS para garantir Fundo Branco e Cores Institucionais
+# CSS para forçar Fundo Branco e Cores Institucionais
 st.markdown("""
     <style>
     /* Fundo Global */
     .stApp { background-color: #FFFFFF; }
     
-    /* Barra Lateral */
+    /* Barra Lateral (Menu) */
     [data-testid="stSidebar"] {
-        background-color: #002D5E !important;
-        color: #FFFFFF !important;
+        background-color: #002D5E !important; /* Azul Aura */
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
     /* Títulos e Textos */
-    h1, h2, h3, h4, label, p { 
+    h1, h2, h3, h4, p, span, label { 
         color: #002D5E !important; 
         font-family: 'Benton Sans', sans-serif !important; 
     }
@@ -37,7 +30,6 @@ st.markdown("""
         color: #FFFFFF;
         border: 2px solid #FFC20E;
         border-radius: 4px;
-        font-weight: bold;
         transition: 0.3s;
     }
     .stButton>button:hover {
@@ -49,21 +41,15 @@ st.markdown("""
     .stDownloadButton>button {
         background-color: #FFC20E !important;
         color: #002D5E !important;
-        border: none !important;
         font-weight: 800 !important;
     }
     
     /* Tabelas */
-    .stTable, [data-testid="stDataFrame"] {
-        background-color: #FFFFFF;
-        border: 1px solid #002D5E;
-    }
+    .stTable { background-color: white; color: #002D5E; }
     </style>
     """, unsafe_allow_html=True)
 
-# ----------------------------------------------------------------
 # 2. INTELIGÊNCIA DE DADOS (BANCO DE DADOS LOCAL)
-# ----------------------------------------------------------------
 DB_VIAGENS = "logistica_viagens_v4.csv"
 DB_PASSAGEIROS = "cadastro_passageiros_v4.csv"
 
@@ -84,161 +70,113 @@ def gerenciar_banco():
 
 gerenciar_banco()
 
-def load_data(file):
-    return pd.read_csv(file).fillna("")
+def load_data(file): return pd.read_csv(file).fillna("")
+def save_data(df, file): df.to_csv(file, index=False)
 
-def save_data(df, file):
-    df.to_csv(file, index=False)
-
-# ----------------------------------------------------------------
-# 3. COMPONENTES DE INTERFACE
-# ----------------------------------------------------------------
+# 3. LISTA DE CENTROS DE CUSTO (INTEGRAL)
 LISTA_CC = sorted([
     "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manut. Mecânica",
-    "210405 - Lixiviação / Cianetação", "210101 - Admin. Planta", "211001 - Manut. Elétrica",
-    "211003 - Oficina Manut. Planta", "210201 - Britagem Primária", "210604 - Fundição",
-    "310101 - Almoxarifado", "320401 - Contabilidade", "310701 - Serviços Gerais",
-    "320601 - Gestão Contratos", "320101 - Suprimentos", "320502 - TI", "320301 - RH",
-    "121101 - Geologia Ernesto", "121001 - Planejamento Mina", "110101 - Adm. Mina",
-    "310501 - Meio Ambiente", "310503 - Segurança Trabalho", "310502 - Saúde",
-    "151101 - Geologia Nosde", "150101 - Adm. Mina Nosde"
+    "210405 - Lixiviação Planta", "210101 - Admin. Planta", "211001 - Manut. Elétrica",
+    "320101 - Suprimentos", "320301 - RH", "121101 - Geologia Ernesto", "121001 - Planejamento Mina",
+    "310501 - Meio Ambiente", "310503 - Segurança Trabalho", "310502 - Saúde", "151101 - Geologia Nosde"
 ])
 
-# Sidebar com Identidade Visual
+# 4. SIDEBAR COM A LOGO NOVA E ESTÁVEL
 with st.sidebar:
-    st.image("https://auraminerals.com/wp-content/themes/aura-minerals/assets/img/logo-aura.png", width=200)
+    # LINK ESTÁVEL PARA A LOGO DA AURA QUE ME ENVIASTE
+    st.image("https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c", width=200)
     st.markdown("---")
-    st.markdown("### PAINEL DE CONTROLE")
+    st.markdown("### PAINEL OPERACIONAL")
     opcao = st.radio(
         "Selecione o Módulo:",
-        ["📋 Agenda Operacional", "📝 Programar Viagem", "👤 Cadastro de Viajantes", "💰 Gestão Financeira"]
+        ["📅 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"]
     )
     st.markdown("---")
-    st.caption("Sistema de Logística v4.0 | Aura Apoena")
+    st.caption("Logística v4.0 | Aura Apoena")
 
-# ----------------------------------------------------------------
-# 4. MÓDULOS DO SISTEMA
-# ----------------------------------------------------------------
-
-# --- MÓDULO 1: AGENDA (VISÃO MOTORISTA) ---
-if opcao == "📋 Agenda Operacional":
-    st.title("Agenda Operacional de Viagens")
+# 5. MÓDULOS
+if opcao == "📅 Agenda Motoristas":
+    st.header("Agenda de Viagens Operacionais")
     df = load_data(DB_VIAGENS)
-    
     if df.empty:
-        st.info("Nenhuma viagem programada no momento.")
+        st.info("Nenhuma viagem programada.")
     else:
-        # Layout focado no Motorista (conforme solicitado)
+        # Layout limpo para os motoristas (conforme Styleguide)
         view_op = df[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]]
         st.table(view_op)
-        
-        # Exportação padronizada
         csv = view_op.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 EXPORTAR AGENDA SEMANAL",
-            data=csv,
-            file_name=f"Agenda_Logistica_{datetime.now().strftime('%d_%m_%Y')}.csv",
-            mime="text/csv"
-        )
+        st.download_button("📥 Baixar Agenda para Motoristas", csv, "agenda_motoristas.csv", "text/csv", key='down_agenda_aura_v4')
 
-# --- MÓDULO 2: PROGRAMAÇÃO ---
 elif opcao == "📝 Programar Viagem":
-    st.title("Programação de Nova Viagem")
+    st.header("📝 Nova Programação")
     df_p = load_data(DB_PASSAGEIROS)
-    
     if df_p.empty:
-        st.error("Erro: Não há viajantes cadastrados. Vá ao módulo 'Cadastro de Viajantes' primeiro.")
+        st.warning("⚠️ Cadastre o viajante primeiro.")
     else:
-        # Seleção de Passageiro para puxar o CC padrão automaticamente
-        passag = st.selectbox("Selecione o Passageiro:", sorted(df_p["Nome"].tolist()))
-        cc_default = df_p[df_p["Nome"] == passag]["CC_Padrao"].iloc[0]
+        # Seletor fora do form para carregar CC padrão dinamicamente
+        nomes = sorted(df_p["Nome"].tolist())
+        p_sel = st.selectbox("Escolha o Passageiro", nomes)
+        cc_sug = df_p[df_p["Nome"] == p_sel]["CC_Padrao"].iloc[0]
 
-        with st.form("form_viagem", clear_on_submit=True):
-            c1, c2 = st.columns(2)
+        with st.form("form_viagem_v4_fix"):
+            col1, col2 = st.columns(2)
+            data_v = col1.date_input("Data da Viagem", datetime.now())
+            mot_v = col1.selectbox("Motorista", ["Ilson", "Antonio"])
             
-            with c1:
-                data_v = st.date_input("Data da Viagem", datetime.now())
-                mot_v = st.selectbox("Motorista Designado", ["Ilson", "Antonio", "Terceirizado"])
-                saida_v = st.text_input("Horário de Saída (ex: 06:00)")
-                
-            with c2:
-                # Centro de Custo Flexível
-                try: idx_cc = LISTA_CC.index(cc_default)
-                except: idx_cc = 0
-                cc_v = st.selectbox("Centro de Custo (Rateio)", LISTA_CC, index=idx_cc)
-                voo_v = st.text_input("Voo / Horário Chegada")
-                traj_v = st.selectbox("Trajeto Padrão", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
+            try: idx_cc = LISTA_CC.index(cc_sug)
+            except: idx_cc = 0
             
-            traj_outro = st.text_input("Se selecionou 'OUTRO', especifique o trajeto:")
-            hosp_v = st.text_input("Destino Final / Hotel (ex: Hotel Cerrados)")
-            obs_v = st.text_area("Observações Adicionais (Aparece na Agenda)")
+            cc_v = col2.selectbox("Centro de Custo (Rateio)", LISTA_CC, index=idx_cc)
+            saida_v = col1.text_input("Horário Saída")
+            voo_v = col2.text_input("Voo / Horário")
             
-            if st.form_submit_button("✅ CONFIRMAR PROGRAMAÇÃO"):
-                trajeto_final = traj_outro if traj_v == "OUTRO" else traj_v
-                nova_v = pd.DataFrame([{
-                    "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": passag,
-                    "CC": cc_v, "Saida": saida_v, "Voo": voo_v, "Trajeto": trajeto_final,
-                    "Hospedagem": hosp_v, "Observacao": obs_v, "Hotel_RS": 0.0, 
-                    "Aereo_RS": 0.0, "Combustivel_RS": 0.0, "Total_RS": 0.0
+            st.write("---")
+            traj_op = ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"]
+            traj_s = st.selectbox("Trajeto Padrão", traj_op)
+            traj_m = st.text_input("Se selecionou 'OUTRO', digite aqui")
+            
+            hosp_v = st.text_input("Hotel / Destino Final")
+            obs_v = st.text_area("Observações (Aparece na Agenda)")
+            
+            if st.form_submit_button("Salvar Viagem na Agenda"):
+                t_final = traj_m if traj_s == "OUTRO" else traj_s
+                nova = pd.DataFrame([{
+                    "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, 
+                    "CC": cc_v, "Saida": saida_v, "Voo": voo_v, "Trajeto": t_final, "Hospedagem": hosp_v,
+                    "Observacao": obs_v, "Hotel_RS": 0.0, "Aereo_RS": 0.0, "Combustivel_RS": 0.0, "Total_RS": 0.0
                 }])
                 
-                db_atual = load_data(DB_VIAGENS)
-                new_db = pd.concat([db_atual, nova_v], ignore_index=True)
-                save_data(new_db, DB_VIAGENS)
-                st.success(f"Viagem de {passag} salva com sucesso!")
+                pd.concat([load_data(DB_VIAGENS), nova], ignore_index=True).to_csv(DB_VIAGENS, index=False)
+                st.success("Viagem salva na agenda operacional!")
                 st.rerun()
 
-# --- MÓDULO 3: CADASTRO ---
-elif opcao == "👤 Cadastro de Viajantes":
-    st.title("Cadastro de Colaboradores")
-    with st.form("form_cadastro", clear_on_submit=True):
-        nome_c = st.text_input("Nome Completo do Viajante:").upper()
-        cc_p = st.selectbox("Centro de Custo Principal:", LISTA_CC)
-        
-        if st.form_submit_button("💾 CADASTRAR VIAJANTE"):
-            if nome_c:
-                db_p = load_data(DB_PASSAGEIROS)
-                if nome_c in db_p["Nome"].values:
-                    st.warning("Este passageiro já está cadastrado.")
-                else:
-                    novo_p = pd.DataFrame([{"Nome": nome_c, "CC_Padrao": cc_p}])
-                    save_data(pd.concat([db_p, novo_p], ignore_index=True), DB_PASSAGEIROS)
-                    st.success(f"Cadastro de {nome_c} realizado!")
-            else:
-                st.error("O campo Nome é obrigatório.")
+elif opcao == "👤 Cadastrar Viajante":
+    st.header("👤 Cadastro de Funcionário")
+    with st.form("form_p_cad_v4_fix"):
+        n = st.text_input("Nome Completo").upper()
+        c = st.selectbox("Centro de Custo Padrão", LISTA_CC)
+        if st.form_submit_button("Cadastrar Funcionário"):
+            if n:
+                pd.concat([load_data(DB_PASSAGEIROS), pd.DataFrame([{"Nome": n, "CC_Padrao": c}])], ignore_index=True).to_csv(DB_PASSAGEIROS, index=False)
+                st.success(f"{n} cadastrado!")
+                st.rerun()
 
-# --- MÓDULO 4: FINANCEIRO ---
-elif opcao == "💰 Gestão Financeira":
-    st.title("Controle Financeiro e Rateio de Custos")
-    df_f = load_data(DB_VIAGENS)
-    
-    if df_f.empty:
-        st.info("Aguardando lançamentos de viagens para gerar dados financeiros.")
-    else:
-        st.markdown("### Edição de Custos por Centro de Custo")
-        # Editor avançado com lista suspensa para CC e validação numérica
-        df_editado = st.data_editor(
-            df_f,
-            column_config={
-                "CC": st.column_config.SelectboxColumn("Setor (CC)", options=LISTA_CC, required=True),
-                "Hotel_RS": st.column_config.NumberColumn("Hotel (R$)", min_value=0, format="R$ %.2f"),
-                "Aereo_RS": st.column_config.NumberColumn("Aéreo (R$)", min_value=0, format="R$ %.2f"),
-                "Combustivel_RS": st.column_config.NumberColumn("Combust. (R$)", min_value=0, format="R$ %.2f"),
-                "Total_RS": st.column_config.NumberColumn("Total (R$)", disabled=True, format="R$ %.2f")
-            },
-            disabled=["Data", "Passageiro", "Motorista"],
-            use_container_width=True,
-            key="financeiro_editor"
+elif opcao == "💰 Financeiro":
+    st.header("Gestão de Custos e Rateio")
+    df = load_data(DB_VIAGENS)
+    if not df.empty:
+        # Editor com lista suspensa no CC
+        df_ed = st.data_editor(
+            df,
+            column_config={"CC": st.column_config.SelectboxColumn("CC", options=LISTA_CC)},
+            key="ed_v4_fix"
         )
-        
-        # Cálculo automático do Total
-        df_editado["Total_RS"] = df_editado["Hotel_RS"] + df_editado["Aereo_RS"] + df_editado["Combustivel_RS"]
-        
-        if st.button("💾 SALVAR ALTERAÇÕES FINANCEIRAS"):
-            save_data(df_editado, DB_VIAGENS)
-            st.success("Financeiro atualizado com sucesso!")
+        df_ed["Total_RS"] = df_ed["Hotel_RS"] + df_ed["Aereo_RS"] + df_ed["Combustivel_RS"]
+        if st.button("💾 Salvar Alterações Financeiras"):
+            save_data(df_ed, DB_VIAGENS)
+            st.success("Dados Financeiros Atualizados!")
             st.rerun()
-            
-        st.markdown("---")
-        csv_fin = df_editado.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 BAIXAR RELATÓRIO FINANCEIRO (RATEIO)", csv_fin, "Financeiro_Logistica_Aura.csv", key="down_fin")
+        
+        csv_f = df_ed.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 Baixar Relatório Financeiro", csv_f, "financeiro_aura.csv", key='down_fin_aura_v4')
+    else: st.info("Lance as viagens primeiro.")
