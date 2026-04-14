@@ -19,7 +19,7 @@ def salvar(df, file): df.to_csv(file, index=False)
 df_v = carregar(DB_VIAGENS, ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Hotel_Valor", "Aereo_Valor", "Combustivel", "Total"])
 df_p = carregar(DB_PASSAGEIROS, ["Nome", "Centro_Custo_Padrao"])
 
-# LISTA INTEGRAL DE CENTROS DE CUSTO (CONFORME SUAS IMAGENS)
+# LISTA INTEGRAL DE CENTROS DE CUSTO
 LISTA_CC = sorted([
     "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
     "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
@@ -41,47 +41,48 @@ LISTA_CC = sorted([
 st.title("🚛 Gestão de Logística Aura")
 menu = st.sidebar.radio("Navegação", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 1. AGENDA DO MOTORISTA
+# 1. AGENDA
 if menu == "📋 Agenda Motoristas":
     st.header("📅 Agenda Operacional")
     if not df_v.empty:
         agenda = df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem"]]
         st.dataframe(agenda, use_container_width=True)
         csv = agenda.to_csv(index=False).encode('utf-8-sig')
-        st.download_button("📥 Baixar Agenda para Motoristas", csv, "agenda_operacional.csv", "text/csv", key='btn_agenda')
-    else:
-        st.info("Nenhuma viagem programada.")
+        st.download_button("📥 Baixar Agenda", csv, "agenda.csv", "text/csv", key='btn_agenda_ok')
+    else: st.info("Sem viagens.")
 
-# 2. PROGRAMAR VIAGEM (CC EDITÁVEL E TRAJETO LIVRE)
+# 2. PROGRAMAR VIAGEM (CORRIGIDO)
 elif menu == "📝 Programar Viagem":
     st.header("📝 Nova Programação")
     if df_p.empty:
-        st.warning("Cadastre o viajante primeiro no menu lateral.")
+        st.warning("Cadastre o viajante primeiro.")
     else:
-        # Seletor de passageiro fora do form para buscar o CC padrão automaticamente
-        nome_sel = st.selectbox("Selecione o Passageiro", sorted(df_p["Nome"].tolist()))
+        # Colocamos o seletor de passageiro e o formulário juntos para evitar o erro de index
+        nome_sel = st.selectbox("1. Selecione o Passageiro", sorted(df_p["Nome"].tolist()))
         cc_default = df_p[df_p["Nome"] == nome_sel]["Centro_Custo_Padrao"].values[0]
 
-        with st.form("f_v", clear_on_submit=True):
+        with st.form("form_viagem_nova", clear_on_submit=True):
             col1, col2 = st.columns(2)
-            data_v = col1.date_input("Data da Viagem")
+            data_v = col1.date_input("Data")
             mot_v = col1.selectbox("Motorista", ["Ilson", "Antonio"])
             
-            # OPÇÃO DE TROCAR O CC AQUI:
-            cc_v = col2.selectbox("Centro de Custo desta Viagem", LISTA_CC, index=LISTA_CC.index(cc_default))
+            # Centro de Custo que pode ser trocado livremente
+            cc_v = col2.selectbox("2. Centro de Custo desta Viagem", LISTA_CC, index=LISTA_CC.index(cc_default))
             
-            saida_v = col1.text_input("Horário Saída (Ex: 06:00)")
-            voo_v = col2.text_input("Voo / Horário (Ex: Latam - 04:35)")
+            saida_v = col1.text_input("Horário Saída")
+            voo_v = col2.text_input("Voo / Horário")
             
             st.write("---")
-            # TRAJETO FLEXÍVEL
             traj_opc = ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"]
-            traj_s = st.selectbox("Selecione o Trajeto ou 'OUTRO' para digitar", traj_opc)
-            traj_m = st.text_input("Se marcou 'OUTRO', digite o local aqui:")
+            traj_s = st.selectbox("Trajeto", traj_opc)
+            traj_m = st.text_input("Se marcou 'OUTRO', digite aqui:")
             
-            hosp_v = st.text_input("Informação de Hotel / Destino (Ex: Cerrados, Aeroporto)")
+            hosp_v = st.text_input("Hotel / Destino Final")
             
-            if st.form_submit_button("Confirmar e Salvar"):
+            # BOTÃO DE SALVAR (OBRIGATÓRIO DENTRO DO FORM)
+            enviar = st.form_submit_button("Salvar Viagem na Agenda")
+            
+            if enviar:
                 t_final = traj_m if traj_s == "OUTRO" else traj_s
                 nova = pd.DataFrame([{
                     "Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": nome_sel, 
@@ -90,27 +91,10 @@ elif menu == "📝 Programar Viagem":
                 }])
                 df_v = pd.concat([df_v, nova], ignore_index=True)
                 salvar(df_v, DB_VIAGENS)
-                st.success("Viagem salva na agenda!")
+                st.success("✅ Viagem salva!")
+                st.rerun()
 
 # 3. CADASTRAR VIAJANTE
 elif menu == "👤 Cadastrar Viajante":
-    st.header("👤 Cadastro de Funcionário")
-    with st.form("f_p", clear_on_submit=True):
-        n = st.text_input("Nome Completo").upper()
-        c = st.selectbox("Centro de Custo Padrão", LISTA_CC)
-        if st.form_submit_button("Cadastrar"):
-            if n:
-                nova_p = pd.DataFrame([{"Nome": n, "Centro_Custo_Padrao": c}])
-                df_p = pd.concat([df_p, nova_p], ignore_index=True)
-                salvar(df_p, DB_PASSAGEIROS)
-                st.success(f"{n} cadastrado!")
-
-# 4. FINANCEIRO
-elif menu == "💰 Financeiro":
-    st.header("💰 Gestão de Custos")
-    if not df_v.empty:
-        df_ed = st.data_editor(df_v)
-        df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel"]
-        if st.button("Salvar Fechamento Financeiro"):
-            salvar(df_ed, DB_VIAGENS)
-            st.success("Custos atualizados!")
+    st.header("👤 Cadastro")
+    with st.form("f_p_cad", clear_on_submit=True):
