@@ -3,23 +3,28 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# 1. SETUP VISUAL (FONTE AZUL MARINHO E LAYOUT AURA)
+# 1. SETUP VISUAL DETALHADO
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 st.markdown("""
     <style>
+    /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
+    
+    /* Barra Lateral Azul Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         border-right: 3px solid #FFC20E;
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
+    
+    /* Logo com Sombra */
     .logo-aura {
         filter: drop-shadow(0px 4px 10px rgba(255, 255, 255, 0.4));
         display: block; margin: auto; padding-bottom: 20px;
     }
     
-    /* TODAS AS FONTES EM AZUL MARINHO */
+    /* FONTES GERAIS EM AZUL MARINHO */
     h1, h2, h3, h4, p, span, label, div, small, .stMarkdown { 
         color: #002D5E !important; 
     }
@@ -28,6 +33,19 @@ st.markdown("""
     .stTextInput label, .stSelectbox label, .stDateInput label, .stTextArea label {
         color: #002D5E !important;
         font-weight: bold !important;
+    }
+
+    /* --- AJUSTE DOS CAMPOS DE PREENCHIMENTO (INPUTS) --- */
+    /* Fundo Cinza e Letra Preta dentro das caixas */
+    input, select, textarea, .stSelectbox div[data-baseweb="select"] {
+        background-color: #F0F2F6 !important; /* Cinza Claro */
+        color: #000000 !important; /* Letra Preta */
+        border: 1px solid #002D5E !important;
+    }
+    
+    /* Garantir que o texto digitado seja preto */
+    .stTextInput input, .stTextArea textarea, .stDateInput input {
+        color: #000000 !important;
     }
 
     /* Botão Azul Aura */
@@ -39,7 +57,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (PERSISTÊNCIA DE DADOS)
+# 2. BANCO DE DADOS
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -47,11 +65,8 @@ def carregar_dados():
     cols_v = ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao", "Valor"]
     if not os.path.exists(DB_V): pd.DataFrame(columns=cols_v).to_csv(DB_V, index=False)
     if not os.path.exists(DB_P): pd.DataFrame(columns=["Nome", "CC_Padrao"]).to_csv(DB_P, index=False)
-    
     v = pd.read_csv(DB_V).fillna("")
     p = pd.read_csv(DB_P).fillna("")
-    
-    # Garantir que todas as colunas existem
     for c in cols_v:
         if c not in v.columns: v[c] = ""
     return v, p
@@ -63,7 +78,7 @@ with st.sidebar:
     st.markdown("""<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>""", unsafe_allow_html=True)
     st.markdown("---")
     
-    # INFORMAÇÕES DE TOTAIS (Solicitado pelo usuário)
+    # INFORMAÇÕES DE TOTAIS
     st.markdown(f"👥 **Funcionários:** {len(df_p)}")
     st.markdown(f"🚛 **Total de Viagens:** {len(df_v)}")
     st.markdown("---")
@@ -95,26 +110,4 @@ elif menu == "📝 Programar Viagem":
             traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
             obs_v = st.text_area("Observação")
             if st.form_submit_button("✅ SALVAR"):
-                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
-                pd.concat([df_v, nova], ignore_index=True).to_csv(DB_V, index=False)
-                st.success("Salvo!")
-                st.rerun()
-
-elif menu == "👤 Cadastrar Viajante":
-    st.header("👤 Cadastro")
-    with st.form("cad"):
-        n = st.text_input("Nome").upper()
-        if st.form_submit_button("CADASTRAR"):
-            if n:
-                pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
-                st.success(f"✅ {n} cadastrado!")
-                st.rerun()
-    st.dataframe(df_p)
-
-elif menu == "💰 Financeiro":
-    st.header("💰 Controle Financeiro")
-    # Correção: O editor agora puxa todos os dados sem ficar em branco
-    df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
-    if st.button("💾 SALVAR ALTERAÇÕES"):
-        df_editado.to_csv(DB_V, index=False)
-        st.success("✅ Financeiro Atualizado!")
+                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel,
