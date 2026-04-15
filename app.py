@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
 import os
-import base64  # <--- ESSENCIAL: Conserta o erro de NameError
+import base64
 from datetime import datetime
 
-# 1. SETUP VISUAL (CONTRASTE TOTAL: CINZA E AZUL ESCURO)
+# 1. SETUP VISUAL (FOCO NO DATA_EDITOR E BOTÃO DO FINANCEIRO)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
-# Função segura para carregar a logo
 def get_base64_of_bin_file(bin_file):
     if os.path.exists(bin_file):
         try:
@@ -19,55 +18,57 @@ def get_base64_of_bin_file(bin_file):
 
 st.markdown("""
     <style>
-    /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Barra Lateral Azul Marinho Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         border-right: none !important;
     }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
-    /* Logo com Sombra Preta */
     .logo-aura {
         filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.8));
         display: block; margin: auto; padding-bottom: 20px;
     }
     
-    /* FONTES GERAIS EM AZUL MARINHO */
-    h1, h2, h3, h4, p, span, label, div, small { 
-        color: #002D5E !important; 
-    }
+    h1, h2, h3, h4, p, span, label, div, small { color: #002D5E !important; }
     
-    /* --- CSS NUCLEAR: TIRA O PRETO E COLOCA CINZA/AZUL EM TUDO --- */
-    input, select, textarea, 
-    div[data-baseweb="input"], 
-    div[data-baseweb="base-input"], 
-    div[data-baseweb="select"] > div,
-    .stTextInput input, .stSelectbox div, .stDateInput input, .stTextArea textarea {
-        background-color: #E8E8E8 !important; /* Cinza */
-        color: #002D5E !important; /* Azul Escuro */
+    /* --- INPUTS GERAIS --- */
+    div[data-baseweb="input"], div[data-baseweb="base-input"], div[data-baseweb="select"] > div,
+    input, textarea, select {
+        background-color: #E8E8E8 !important; 
+        color: #002D5E !important; 
         -webkit-text-fill-color: #002D5E !important;
     }
 
-    /* Botões: Azul Aura com Letra Branca */
-    .stButton>button {
-        background-color: #002D5E !important; 
-        color: #FFFFFF !important;
-        border: 2px solid #FFC20E !important; 
-        border-radius: 5px;
-        font-weight: bold; width: 100%;
+    /* --- AJUSTE ESPECÍFICO PARA O DATA_EDITOR (TABLE) --- */
+    [data-testid="stDataEditor"] div {
+        background-color: #E8E8E8 !important;
+        color: #002D5E !important;
     }
     
-    /* Editor Financeiro */
-    [data-testid="stDataEditor"] {
-        background-color: #E8E8E8 !important;
+    /* Cor das letras dentro das células da tabela */
+    [data-testid="stDataEditor"] [role="gridcell"] {
+        color: #002D5E !important;
+    }
+
+    /* --- AJUSTE ESPECÍFICO PARA O BOTÃO --- */
+    .stButton>button {
+        background-color: #E8E8E8 !important; /* Fundo Cinza conforme solicitado */
+        color: #002D5E !important; /* Letra Azul Escuro */
+        border: 2px solid #002D5E !important; 
+        font-weight: bold; 
+        width: 100%;
+    }
+    
+    .stButton>button:hover {
+        background-color: #002D5E !important;
+        color: #FFFFFF !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (LÓGICA PRESERVADA)
+# 2. BANCO DE DADOS (LÓGICA INALTERADA)
 DB_V = "banco_viagens_oficial.csv"
 DB_P = "banco_passageiros_oficial.csv"
 
@@ -83,14 +84,12 @@ def carregar_dados():
 
 df_v, df_p = carregar_dados()
 
-# 3. BARRA LATERAL (LOGO E TOTAIS)
+# 3. BARRA LATERAL
 with st.sidebar:
-    # Tenta carregar a imagem Aura (Azul e Ocre).png
     img_b64 = get_base64_of_bin_file("Aura (Azul e Ocre).png")
     if img_b64:
         st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{img_b64}" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
     else:
-        # Fallback caso a imagem não esteja na pasta
         st.markdown(f'<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
     
     st.markdown("---")
@@ -99,18 +98,16 @@ with st.sidebar:
     st.markdown("---")
     menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
 
-# 4. MÓDULOS (SUA LÓGICA ORIGINAL)
+# 4. MÓDULOS (LÓGICA INTACTA)
 if menu == "📋 Agenda Motoristas":
     st.header("📋 Agenda Operacional")
     if not df_v.empty:
         st.table(df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]])
-    else:
-        st.write("Nenhuma viagem programada.")
+    else: st.write("Nenhuma viagem programada.")
 
 elif menu == "📝 Programar Viagem":
     st.header("📝 Programar Viagem")
-    if df_p.empty:
-        st.error("⚠️ Cadastre um viajante primeiro.")
+    if df_p.empty: st.error("⚠️ Cadastre um viajante primeiro.")
     else:
         with st.form("form_viagem"):
             c1, c2 = st.columns(2)
@@ -132,7 +129,7 @@ elif menu == "👤 Cadastrar Viajante":
     st.header("👤 Cadastro")
     with st.form("cad"):
         n = st.text_input("Nome").upper()
-        if st.form_submit_button("CADASTRAR"):
+        if st.form_submit_button("CADASTRAR FUNCIONÁRIO"):
             if n:
                 pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
                 st.success(f"✅ {n} cadastrado!")
@@ -141,7 +138,8 @@ elif menu == "👤 Cadastrar Viajante":
 
 elif menu == "💰 Financeiro":
     st.header("💰 Controle Financeiro")
+    # A lógica da tabela e do botão permanece igual, apenas o visual mudou no CSS acima
     df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
-    if st.button("💾 SALVAR ALTERAÇÕES"):
+    if st.button("💾 SALVAR ALTERAÇÕES FINANCEIRAS"):
         df_editado.to_csv(DB_V, index=False)
         st.success("✅ Financeiro Atualizado!")
