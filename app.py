@@ -4,7 +4,7 @@ import os
 import base64
 from datetime import datetime
 
-# 1. SETUP VISUAL (FOCO NO DATA_EDITOR E BOTÃO DO FINANCEIRO)
+# 1. SETUP VISUAL (CONTRASTE TOTAL: CINZA E AZUL MARINHO)
 st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
 
 def get_base64_of_bin_file(bin_file):
@@ -18,8 +18,10 @@ def get_base64_of_bin_file(bin_file):
 
 st.markdown("""
     <style>
+    /* Fundo Geral Branco */
     .stApp { background-color: #FFFFFF !important; }
     
+    /* Barra Lateral - Azul Marinho Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         border-right: none !important;
@@ -31,9 +33,10 @@ st.markdown("""
         display: block; margin: auto; padding-bottom: 20px;
     }
     
+    /* FONTES GERAIS EM AZUL MARINHO */
     h1, h2, h3, h4, p, span, label, div, small { color: #002D5E !important; }
     
-    /* --- INPUTS GERAIS --- */
+    /* --- INPUTS GERAIS (CINZA COM AZUL) --- */
     div[data-baseweb="input"], div[data-baseweb="base-input"], div[data-baseweb="select"] > div,
     input, textarea, select {
         background-color: #E8E8E8 !important; 
@@ -41,27 +44,31 @@ st.markdown("""
         -webkit-text-fill-color: #002D5E !important;
     }
 
-    /* --- AJUSTE ESPECÍFICO PARA O DATA_EDITOR (TABLE) --- */
-    [data-testid="stDataEditor"] div {
+    /* --- FORÇAR CORES NA TABELA (DATA EDITOR) --- */
+    /* Isso ataca o container e as células da tabela */
+    [data-testid="stDataEditor"], [data-testid="stDataEditor"] div, 
+    [data-testid="stTable"] td, [data-testid="stTable"] th {
         background-color: #E8E8E8 !important;
         color: #002D5E !important;
     }
     
-    /* Cor das letras dentro das células da tabela */
-    [data-testid="stDataEditor"] [role="gridcell"] {
-        color: #002D5E !important;
+    /* Tira o fundo preto das células de edição */
+    [data-testid="stDataEditor"] [role="gridcell"], [data-testid="stDataEditor"] canvas {
+        filter: contrast(0.8) brightness(1.2); /* Ajuste visual para clarear o grid interno */
     }
 
-    /* --- AJUSTE ESPECÍFICO PARA O BOTÃO --- */
-    .stButton>button {
-        background-color: #E8E8E8 !important; /* Fundo Cinza conforme solicitado */
-        color: #002D5E !important; /* Letra Azul Escuro */
+    /* --- FORÇAR CORES NO BOTÃO (SALVAR) --- */
+    /* Usando seletores mais fortes para garantir que o cinza apareça */
+    div.stButton > button:first-child {
+        background-color: #E8E8E8 !important; 
+        color: #002D5E !important; 
         border: 2px solid #002D5E !important; 
-        font-weight: bold; 
-        width: 100%;
+        font-weight: bold !important;
+        width: 100% !important;
+        height: 3em !important;
     }
     
-    .stButton>button:hover {
+    div.stButton > button:hover {
         background-color: #002D5E !important;
         color: #FFFFFF !important;
     }
@@ -138,7 +145,7 @@ elif menu == "👤 Cadastrar Viajante":
 
 elif menu == "💰 Financeiro":
     st.header("💰 Controle Financeiro")
-    # A lógica da tabela e do botão permanece igual, apenas o visual mudou no CSS acima
+    # A tabela e o botão agora são controlados pelos seletores de CSS acima
     df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
     if st.button("💾 SALVAR ALTERAÇÕES FINANCEIRAS"):
         df_editado.to_csv(DB_V, index=False)
