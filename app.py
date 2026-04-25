@@ -1,152 +1,121 @@
 import streamlit as st
 import pandas as pd
 import os
-import base64
 from datetime import datetime
 
-# 1. SETUP VISUAL (CONTRASTE TOTAL: CINZA E AZUL MARINHO)
-st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
+# 1. CONFIGURAÇÃO DA PÁGINA (FORÇAR TEMA CLARO)
+st.set_page_config(
+    page_title="Logística Aura Minerals", 
+    layout="wide", 
+    initial_sidebar_state="expanded"
+)
 
-def get_base64_of_bin_file(bin_file):
-    if os.path.exists(bin_file):
-        try:
-            with open(bin_file, 'rb') as f:
-                data = f.read()
-            return base64.b64encode(data).decode()
-        except: return None
-    return None
-
+# 2. CSS CUSTOMIZADO (CORES: AZUL MARINHO E CINZA)
 st.markdown("""
     <style>
-    /* Fundo Geral Branco */
+    /* Fundo Branco e Texto Azul Marinho */
     .stApp { background-color: #FFFFFF !important; }
     
-    /* Barra Lateral - Azul Marinho Aura */
-    [data-testid="stSidebar"] {
-        background-color: #002D5E !important;
-        border-right: none !important;
-    }
+    /* Barra Lateral Azul Marinho */
+    [data-testid="stSidebar"] { background-color: #002D5E !important; }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
     
-    .logo-aura {
-        filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.8));
-        display: block; margin: auto; padding-bottom: 20px;
-    }
-    
-    /* FONTES GERAIS EM AZUL MARINHO */
-    h1, h2, h3, h4, p, span, label, div, small { color: #002D5E !important; }
-    
-    /* --- INPUTS GERAIS (CINZA COM AZUL) --- */
-    div[data-baseweb="input"], div[data-baseweb="base-input"], div[data-baseweb="select"] > div,
-    input, textarea, select {
-        background-color: #E8E8E8 !important; 
-        color: #002D5E !important; 
-        -webkit-text-fill-color: #002D5E !important;
-    }
+    /* Títulos e Textos */
+    h1, h2, h3, p, label { color: #002D5E !important; font-family: 'Segoe UI', sans-serif; }
 
-    /* --- FORÇAR CORES NA TABELA (DATA EDITOR) --- */
-    /* Isso ataca o container e as células da tabela */
-    [data-testid="stDataEditor"], [data-testid="stDataEditor"] div, 
-    [data-testid="stTable"] td, [data-testid="stTable"] th {
+    /* Estilo dos Campos de Entrada (Cinza Aura) */
+    div[data-baseweb="input"], div[data-baseweb="select"], .stTextArea textarea {
+        background-color: #E8E8E8 !important;
+        border: 1px solid #002D5E !important;
+        border-radius: 5px !important;
+    }
+    input { color: #002D5E !important; }
+
+    /* Botões Padrão Aura */
+    .stButton>button {
         background-color: #E8E8E8 !important;
         color: #002D5E !important;
-    }
-    
-    /* Tira o fundo preto das células de edição */
-    [data-testid="stDataEditor"] [role="gridcell"], [data-testid="stDataEditor"] canvas {
-        filter: contrast(0.8) brightness(1.2); /* Ajuste visual para clarear o grid interno */
-    }
-
-    /* --- FORÇAR CORES NO BOTÃO (SALVAR) --- */
-    /* Usando seletores mais fortes para garantir que o cinza apareça */
-    div.stButton > button:first-child {
-        background-color: #E8E8E8 !important; 
-        color: #002D5E !important; 
-        border: 2px solid #002D5E !important; 
+        border: 2px solid #002D5E !important;
+        border-radius: 8px !important;
         font-weight: bold !important;
-        width: 100% !important;
-        height: 3em !important;
+        width: 100%;
+        transition: 0.3s;
     }
-    
-    div.stButton > button:hover {
+    .stButton>button:hover {
         background-color: #002D5E !important;
         color: #FFFFFF !important;
+    }
+
+    /* Logo com Sombra e Alinhamento */
+    .logo-container { display: flex; justify-content: center; padding: 20px 0; }
+    .logo-aura {
+        filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.7));
+        width: 180px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. BANCO DE DADOS (LÓGICA INALTERADA)
-DB_V = "banco_viagens_oficial.csv"
-DB_P = "banco_passageiros_oficial.csv"
+# --- 3. CONFIGURAÇÃO DE CAMINHOS (AJUSTE AQUI) ---
+# Substitua pelo caminho da sua pasta de teste do OneDrive
+PASTA_ONEDRIVE = r"C:\Users\yara.chaves\OneDrive - Aura Minerals\Apoena - Gerência Administrativa e Financeira-Infraestrutura - Teste"
 
+# Se o caminho acima não for encontrado, ele salva na mesma pasta do código por segurança
+if not os.path.exists(PASTA_ONEDRIVE):
+    PASTA_FINAL = os.getcwd()
+else:
+    PASTA_FINAL = PASTA_ONEDRIVE
+
+DB_V = os.path.join(PASTA_FINAL, "banco_viagens_oficial.csv")
+
+# 4. FUNÇÃO DE CARREGAMENTO
 def carregar_dados():
-    cols_v = ["Data", "Motorista", "Passageiro", "CC", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao", "Valor"]
-    if not os.path.exists(DB_V): pd.DataFrame(columns=cols_v).to_csv(DB_V, index=False)
-    if not os.path.exists(DB_P): pd.DataFrame(columns=["Nome", "CC_Padrao"]).to_csv(DB_P, index=False)
-    v = pd.read_csv(DB_V).fillna("")
-    p = pd.read_csv(DB_P).fillna("")
-    for c in cols_v:
-        if c not in v.columns: v[c] = ""
-    return v, p
+    if not os.path.exists(DB_V):
+        pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "Trajeto", "Status"]).to_csv(DB_V, index=False)
+    return pd.read_csv(DB_V).fillna("")
 
-df_v, df_p = carregar_dados()
+df_v = carregar_dados()
 
-# 3. BARRA LATERAL
+# 5. BARRA LATERAL (LOGO E MENU)
 with st.sidebar:
-    img_b64 = get_base64_of_bin_file("Aura (Azul e Ocre).png")
-    if img_b64:
-        st.markdown(f'<div style="text-align: center;"><img src="data:image/png;base64,{img_b64}" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="logo-container"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" class="logo-aura"></div>', unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: white !important;'>Gestão de Logística</h3>", unsafe_allow_html=True)
     st.markdown("---")
-    st.markdown(f"👥 **Funcionários:** {len(df_p)}")
-    st.markdown(f"🚛 **Total de Viagens:** {len(df_v)}")
-    st.markdown("---")
-    menu = st.radio("NAVEGAÇÃO", ["📋 Agenda Motoristas", "📝 Programar Viagem", "👤 Cadastrar Viajante", "💰 Financeiro"])
+    menu = st.radio("NAVEGAÇÃO", ["📋 Agenda", "📝 Programar Viagem", "💰 Financeiro"])
 
-# 4. MÓDULOS (LÓGICA INTACTA)
-if menu == "📋 Agenda Motoristas":
-    st.header("📋 Agenda Operacional")
+# 6. MÓDULOS DO SISTEMA
+if menu == "📝 Programar Viagem":
+    st.header("📝 Programar Nova Viagem")
+    with st.form("form_viagem"):
+        col1, col2 = st.columns(2)
+        nome = col1.text_input("Nome do Passageiro").upper()
+        motorista = col1.selectbox("Motorista", ["Ilson", "Antonio", "Outro"])
+        data = col2.date_input("Data da Viagem", datetime.now())
+        trajeto = col2.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
+        
+        if st.form_submit_button("✅ SALVAR NO SHAREPOINT"):
+            nova_linha = pd.DataFrame([{
+                "Data": data.strftime('%d/%m/%Y'),
+                "Motorista": motorista,
+                "Passageiro": nome,
+                "Trajeto": trajeto,
+                "Status": "Programado"
+            }])
+            df_final = pd.concat([df_v, nova_linha], ignore_index=True)
+            df_final.to_csv(DB_V, index=False)
+            st.success(f"Viagem salva com sucesso em: {PASTA_FINAL}")
+            st.rerun()
+
+elif menu == "📋 Agenda":
+    st.header("📋 Agenda de Viagens")
     if not df_v.empty:
-        st.table(df_v[["Data", "Motorista", "Passageiro", "Saida", "Voo", "Trajeto", "Hospedagem", "Observacao"]])
-    else: st.write("Nenhuma viagem programada.")
-
-elif menu == "📝 Programar Viagem":
-    st.header("📝 Programar Viagem")
-    if df_p.empty: st.error("⚠️ Cadastre um viajante primeiro.")
+        st.dataframe(df_v, use_container_width=True)
     else:
-        with st.form("form_viagem"):
-            c1, c2 = st.columns(2)
-            p_sel = c1.selectbox("Passageiro*", df_p["Nome"].tolist())
-            mot_v = c1.selectbox("Motorista*", ["Ilson", "Antonio"])
-            data_v = c1.date_input("Data", datetime.now())
-            saida_v = c2.text_input("Saída*")
-            voo_v = c2.text_input("Voo")
-            hosp_v = c2.text_input("Hospedagem")
-            traj_v = st.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "CUIABÁ X P. LACERDA", "INTERNO", "OUTRO"])
-            obs_v = st.text_area("Observação")
-            if st.form_submit_button("✅ SALVAR PROGRAMAÇÃO"):
-                nova = pd.DataFrame([{"Data": data_v.strftime('%d/%m/%Y'), "Motorista": mot_v, "Passageiro": p_sel, "Saida": saida_v, "Voo": voo_v, "Trajeto": traj_v, "Hospedagem": hosp_v, "Observacao": obs_v}])
-                pd.concat([df_v, nova], ignore_index=True).to_csv(DB_V, index=False)
-                st.success("Salvo!")
-                st.rerun()
-
-elif menu == "👤 Cadastrar Viajante":
-    st.header("👤 Cadastro")
-    with st.form("cad"):
-        n = st.text_input("Nome").upper()
-        if st.form_submit_button("CADASTRAR FUNCIONÁRIO"):
-            if n:
-                pd.concat([df_p, pd.DataFrame([{"Nome": n}])], ignore_index=True).to_csv(DB_P, index=False)
-                st.success(f"✅ {n} cadastrado!")
-                st.rerun()
-    st.dataframe(df_p)
+        st.info("Nenhuma viagem programada ainda.")
 
 elif menu == "💰 Financeiro":
-    st.header("💰 Controle Financeiro")
-    # A tabela e o botão agora são controlados pelos seletores de CSS acima
+    st.header("💰 Gestão Financeira e Custos")
+    st.markdown("Edite os valores diretamente na tabela abaixo:")
     df_editado = st.data_editor(df_v, use_container_width=True, num_rows="dynamic")
-    if st.button("💾 SALVAR ALTERAÇÕES FINANCEIRAS"):
+    if st.button("💾 ATUALIZAR PLANILHA"):
         df_editado.to_csv(DB_V, index=False)
-        st.success("✅ Financeiro Atualizado!")
+        st.success("Planilha atualizada no SharePoint!")
