@@ -10,7 +10,7 @@ st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 # 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX PREMIUM DESIGN (PADRONIZADO)
+# 3. UI/UX PREMIUM DESIGN (PADRONIZADO E CONGELADO)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
@@ -44,7 +44,7 @@ st.markdown("""
         background-color: #002D5E !important;
         color: #FFFFFF !important;
     }
-    /* Tabelas e Planilhas Padronizadas */
+    /* Tabelas e Planilhas Padronizadas com Fundo Branco */
     [data-testid="stDataFrame"], [data-testid="stTable"], .stDataEditor {
         background-color: #FFFFFF !important;
         border-radius: 10px !important;
@@ -65,16 +65,18 @@ def carregar_sistema():
         df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
         return df, contents.sha, repo
     except:
-        # Garante a existência da coluna Valor no banco
         return pd.DataFrame(columns=["Passageiro", "Motorista", "Data", "Trajeto", "Valor (R$)"]), None, None
 
 df, sha, repo = carregar_sistema()
+
+# Garante que a coluna de Valor exista
 if "Valor (R$)" not in df.columns:
     df["Valor (R$)"] = 0.0
 
 # 5. SIDEBAR / MENU
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
+    # Tenta carregar a logo.png local primeiro (recomendado renomear no GitHub)
     try:
         st.image("logo.png", width=240)
     except:
@@ -85,16 +87,14 @@ with st.sidebar:
 
 # 6. TELAS (FUNÇÕES ESPECÍFICAS)
 
-# MODULO 1: AGENDA
 if menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
-    st.markdown("### Visualização geral do fluxo logístico")
+    st.markdown("### Fluxo Logístico Unidade Apoena")
     st.dataframe(df, use_container_width=True)
 
-# MODULO 2: PROGRAMAR
 elif menu == "📝 Programar Viagem":
     st.title("📝 Programar Viagem")
-    st.markdown("### Cadastro de novos itinerários")
+    st.markdown("### Cadastro de Itinerários")
     with st.form("form_v", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -118,14 +118,17 @@ elif menu == "📝 Programar Viagem":
                 st.success(f"Viagem para {nome} salva com sucesso!")
                 st.rerun()
 
-# MODULO 3: FINANCEIRO
 elif menu == "💰 Financeiro":
     st.title("💰 Financeiro")
-    st.markdown("### Gestão de custos e edição de registros")
+    st.markdown("### Gestão de Custos e Edição")
     
+    # Editor de dados com fundo branco garantido
     df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("CONFIRMAR ALTERAÇÕES FINANCEIRAS"):
         if repo:
             csv_editado = df_editado.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Edit Finance
+            # Correção do erro de syntax (fechamento de aspas e parênteses)
+            repo.update_file("dados_logistica.csv", "Edit Financeiro", csv_editado, sha)
+            st.success("Dados financeiros sincronizados!")
+            st.rerun()
