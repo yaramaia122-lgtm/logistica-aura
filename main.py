@@ -31,8 +31,8 @@ st.markdown("""
     /* Estilização das Caixas de Texto (Fundo Branco e Escrita Preta) */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {
         background-color: #FFFFFF !important;
-        border: 2px solid #002D5E !important; /* Borda Azul Aura para combinar */
-        color: #000000 !important; /* TEXTO EM PRETO PARA VER O QUE ESCREVE */
+        border: 2px solid #002D5E !important;
+        color: #000000 !important; /* TEXTO EM PRETO PARA LEITURA */
         border-radius: 6px !important;
         height: 45px !important;
     }
@@ -91,11 +91,13 @@ df, sha, repo = carregar_sistema()
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # URL DA LOGO - Ajustada para o formato raw correto do GitHub
-    logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png"
-    
-    # Tentativa de carregar a logo (width ajustado para visibilidade)
-    st.image(logo_path, width=240)
+    # ESTRATÉGIA DE LOGO: Tenta carregar o arquivo local logo.png
+    try:
+        st.image("logo.png", width=250)
+    except:
+        # Se não achar o arquivo local, tenta o link direto (RAW)
+        # Note que se o nome no GitHub tiver espaços/parênteses, esse link falha.
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=250)
     
     st.markdown("---")
     menu = st.radio("Navegação", ["📋 Agenda de Viagens", "📝 Programar Nova Viagem", "💰 Financeiro e Edição"])
@@ -115,4 +117,35 @@ if menu == "📝 Programar Nova Viagem":
         if st.form_submit_button("Confirmar Agendamento"):
             if nome and repo:
                 nova_viagem = pd.DataFrame([[nome, motorista, data.strftime('%d/%m/%Y'), trajeto]], columns=df.columns)
-                df_atualizado = pd.concat([df
+                df_atualizado = pd.concat([df, nova_viagem], ignore_index=True)
+                csv_txt = df_atualizado.to_csv(index=False)
+                
+                if sha:
+                    repo.update_file("dados_logistica.csv", "Registro de Viagem", csv_txt, sha)
+                else:
+                    repo.create_file("dados_logistica.csv", "Início do Banco", csv_txt)
+                
+                st.success(f"Viagem para {nome} salva com sucesso!")
+                st.rerun()
+            else:
+                st.error("Preencha o nome do passageiro antes de salvar.")
+
+elif menu == "📋 Agenda de Viagens":
+    st.title("📋 Agenda de Logística")
+    if df.empty:
+        st.info("Não há viagens registradas no momento.")
+    else:
+        st.dataframe(df, width=1200)
+
+elif menu == "💰 Financeiro e Edição":
+    st.title("💰 Gestão de Registros")
+    st.markdown("Edite os dados diretamente na tabela abaixo e clique em salvar:")
+    
+    df_editado = st.data_editor(df, num_rows="dynamic", width=1200)
+    
+    if st.button("Salvar Todas as Alterações"):
+        if repo:
+            csv_editado = df_editado.to_csv(index=False)
+            repo.update_file("dados_logistica.csv", "Edição Manual", csv_editado, sha)
+            st.success("Dados atualizados no GitHub!")
+            st.rerun()
