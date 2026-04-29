@@ -1,75 +1,136 @@
 import streamlit as st
 import pandas as pd
-import os
+from github import Github
+import io
 from datetime import datetime
 
-# 1. VISUAL PADRÃO AURA (CINZA E AZUL MARINHO - SEM PRETO)
-st.set_page_config(page_title="Logística Aura Minerals", layout="wide")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Aura Apoena - Logística", layout="wide")
 
-st.markdown("""
+# --- ESTILIZAÇÃO CUSTOMIZADA (CSS) ---
+st.markdown(f"""
     <style>
-    .stApp { background-color: #FFFFFF !important; }
-    [data-testid="stSidebar"] { background-color: #002D5E !important; }
-    [data-testid="stSidebar"] * { color: #FFFFFF !important; }
+    /* Fundo principal */
+    .stApp {{
+        background-color: #FFFFFF;
+    }}
     
-    /* Inputs: Fundo Cinza, Letra Azul Marinho */
-    div[data-baseweb="input"], input, select, textarea {
+    /* Barra lateral */
+    [data-testid="stSidebar"] {{
+        background-color: #002D5E;
+    }}
+    [data-testid="stSidebar"] * {{
+        color: white !important;
+    }}
+
+    /* Inputs e bordas */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {{
         background-color: #E8E8E8 !important;
-        color: #002D5E !important;
         border: 1px solid #002D5E !important;
-    }
-    
-    /* Botões: Estilo Profissional */
-    .stButton>button {
-        background-color: #E8E8E8 !important;
         color: #002D5E !important;
-        border: 2px solid #002D5E !important;
-        font-weight: bold; width: 100%;
-    }
-    .stButton>button:hover { background-color: #002D5E !important; color: #FFFFFF !important; }
-    
-    /* Tabela Financeira */
-    [data-testid="stDataEditor"] { background-color: #E8E8E8 !important; }
+    }}
+
+    /* Botões */
+    div.stButton > button {{
+        background-color: #E8E8E8;
+        color: #002D5E;
+        border: 1px solid #002D5E;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }}
+    div.stButton > button:hover {{
+        background-color: #002D5E !important;
+        color: white !important;
+    }}
+
+    /* Logo com sombra */
+    .logo-container {{
+        display: flex;
+        justify-content: center;
+        padding: 10px;
+    }}
+    .logo-img {{
+        filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.5));
+        width: 180px;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. CAMINHO REAL DO SEU ONEDRIVE (A PONTE PARA O SHAREPOINT) ---
-PASTA_ONEDRIVE = r"C:\Users\yara.chaves\OneDrive - Aura Minerals\Apoena - Gerência Administrativa e Financeira-Infraestrutura - Teste"
+# --- INTEGRAÇÃO GITHUB ---
+GITHUB_TOKEN = st.secrets["GITHUB_TOKEN"]
+REPO_NAME = "SEU_USUARIO/SEU_REPOSITORIO" # <--- AJUSTE AQUI
+FILE_PATH = "dados_logistica.csv"
 
-DB_V = os.path.join(PASTA_ONEDRIVE, "banco_viagens_oficial.csv")
-# ------------------------------------------------------------------
+def get_github_repo():
+    g = Github(GITHUB_TOKEN)
+    return g.get_repo(REPO_NAME)
 
 def carregar_dados():
-    if not os.path.exists(DB_V):
-        # Cria o arquivo com as colunas caso ele não exista na sua pasta
-        pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "Saida", "Trajeto", "Valor"]).to_csv(DB_V, index=False)
-    return pd.read_csv(DB_V).fillna("")
+    try:
+        repo = get_github_repo()
+        contents = repo.get_contents(FILE_PATH)
+        df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
+        return df, contents.sha
+    except:
+        # Se o arquivo não existir, retorna um DF vazio
+        return pd.DataFrame(columns=["Passageiro", "Motorista", "Data", "Trajeto"]), None
 
-df_v = carregar_dados()
+def salvar_dados(df, sha=None, mensagem="Update logística"):
+    repo = get_github_repo()
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False)
+    if sha:
+        repo.update_file(FILE_PATH, mensagem, csv_buffer.getvalue(), sha)
+    else:
+        repo.create_file(FILE_PATH, mensagem, csv_buffer.getvalue())
 
-# 3. INTERFACE E MELHORIAS
+# --- SIDEBAR / MENU ---
 with st.sidebar:
-    st.markdown("### 🚛 Gestão de Logística")
-    menu = st.radio("MENU", ["📋 Agenda", "📝 Programar Viagem", "💰 Financeiro"])
+    st.markdown('<div class="logo-container"><img src="https://raw.githubusercontent.com/seu-repo/main/logo.png" class="logo-img"></div>', unsafe_allow_html=True)
+    st.markdown("---")
+    menu = st.radio("Navegação", ["📋 Agenda", "📝 Programar Viagem", "💰 Financeiro"])
+
+df, file_sha = carregar_dados()
+
+# --- LOGICA DAS TELAS ---
 
 if menu == "📝 Programar Viagem":
-    st.header("📝 Nova Programação")
-    with st.form("form_viagem"):
-        c1, c2 = st.columns(2)
-        p = c1.text_input("Passageiro").upper()
-        m = c1.selectbox("Motorista", ["Ilson", "Antonio"])
-        d = c1.date_input("Data", datetime.now())
-        t = c2.selectbox("Trajeto", ["P. LACERDA X CUIABÁ", "INTERNO", "OUTRO"])
+    st.header("📝 Programar Nova Viagem")
+    with st.form("form_viagem", clear_on_submit=True):
+        passageiro = st.text_input("Passageiro").upper()
+        motorista = st.selectbox("Motorista", ["Ilson", "Antonio", "Outro"])
+        data = st.date_input("Data", datetime.now())
+        trajeto = st.selectbox("Trajeto", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
         
-        if st.form_submit_button("✅ SALVAR E SINCRONIZAR"):
-            nova_linha = pd.DataFrame([{"Data": d.strftime('%d/%m/%Y'), "Motorista": m, "Passageiro": p, "Trajeto": t}])
-            pd.concat([df_v, nova_linha], ignore_index=True).to_csv(DB_V, index=False)
-            st.success("Salvo no seu OneDrive! O Power Automate fará o resto.")
+        submit = st.form_submit_button("Agendar Viagem")
+        
+        if submit:
+            nova_linha = pd.DataFrame([{
+                "Passageiro": passageiro,
+                "Motorista": motorista,
+                "Data": data.strftime('%Y-%m-%d'),
+                "Trajeto": trajeto
+            }])
+            df_final = pd.concat([df, nova_linha], ignore_index=True)
+            salvar_dados(df_final, file_sha)
+            st.success("Viagem programada com sucesso!")
+            st.rerun()
+
+elif menu == "📋 Agenda":
+    st.header("📋 Agenda de Viagens")
+    if not df.empty:
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.info("Nenhuma viagem agendada.")
 
 elif menu == "💰 Financeiro":
-    st.header("💰 Controle de Custos")
-    # Melhoria: Tabela editável que salva direto no seu OneDrive
-    df_editado = st.data_editor(df_v, use_container_width=True)
-    if st.button("💾 ATUALIZAR PLANILHA"):
-        df_editado.to_csv(DB_V, index=False)
-        st.success("Planilha de custos atualizada com sucesso!")
+    st.header("💰 Controle Financeiro e Edição")
+    st.warning("Edite as células abaixo e clique em 'Salvar Alterações'.")
+    
+    # Editor de dados para deleção e modificação
+    df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+    
+    if st.button("Salvar Alterações"):
+        salvar_dados(df_editado, file_sha, "Alteração via aba Financeiro")
+        st.success("Dados atualizados no GitHub!")
+        st.rerun()
