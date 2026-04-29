@@ -8,68 +8,70 @@ from datetime import datetime
 st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 
 # 2. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Logística Aura Apoena", layout="wide")
+st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX DESIGNER (ESTILIZAÇÃO DAS CORES)
+# 3. UI/UX PREMIUM DESIGN
 st.markdown("""
     <style>
-    /* Fundo Principal */
-    .stApp { background-color: #FDFDFD; }
+    /* Fundo Principal - Estilo Soft Enterprise */
+    .stApp { background-color: #FFFFFF; }
     
     /* Barra Lateral - Azul Marinho Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
-        min-width: 300px;
+        min-width: 280px;
     }
     
-    /* Ajuste de cor dos textos na Barra Lateral */
+    /* Textos da Barra Lateral */
     [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         color: #FFFFFF !important;
-        font-weight: 500;
     }
 
-    /* Estilização das Caixas de Texto (Fundo Branco e Escrita Preta) */
+    /* ESTILIZAÇÃO DAS CAIXAS (Inputs) - Azul Claríssimo Moderno */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {
-        background-color: #FFFFFF !important;
-        border: 2px solid #002D5E !important;
-        color: #000000 !important; /* TEXTO EM PRETO PARA LEITURA */
-        border-radius: 6px !important;
-        height: 45px !important;
+        background-color: #F0F4F8 !important; /* Azul muito claro */
+        border: 1px solid #D1D9E6 !important;
+        color: #002D5E !important; /* Escrita em Marinho */
+        border-radius: 10px !important;
+        height: 48px !important;
+        font-size: 16px !important;
     }
     
-    /* Garante que o texto dentro do menu de seleção também fique preto */
-    div[data-baseweb="select"] > div {
-        color: #000000 !important;
+    /* Hover e Foco nos Inputs */
+    .stTextInput input:focus {
+        border-color: #002D5E !important;
+        background-color: #FFFFFF !important;
     }
 
-    /* Títulos e Cabeçalhos */
-    h1, h2, h3 { 
-        color: #002D5E !important; 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    /* Botão Salvar - Estilo Profissional */
+    /* BOTÕES - Estilo "Pense Grande" (Azul Pastel com Marinho) */
     div.stButton > button {
-        background-color: #002D5E;
-        color: #FFFFFF;
-        border: none;
-        border-radius: 6px;
-        padding: 0.7rem 1.5rem;
-        font-size: 16px;
-        font-weight: bold;
+        background-color: #E1E8F0; /* Azul claro harmônico */
+        color: #002D5E !important;
+        border: 1px solid #002D5E;
+        border-radius: 10px;
+        padding: 0.8rem 2rem;
+        font-weight: 700;
         width: 100%;
+        transition: all 0.3s ease;
     }
     
     div.stButton > button:hover {
-        background-color: #E8E8E8 !important;
-        color: #002D5E !important;
-        border: 1px solid #002D5E !important;
+        background-color: #002D5E !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 4px 12px rgba(0,45,94,0.2);
     }
 
-    /* Tabela de Dados */
+    /* Títulos e Tabelas */
+    h1, h2, h3 { 
+        color: #002D5E !important; 
+        letter-spacing: -0.5px;
+    }
+
+    /* Data Editor / Tabelas */
     [data-testid="stDataFrame"] {
-        border: 1px solid #E0E0E0;
-        border-radius: 8px;
+        background-color: #F8FAFC;
+        border-radius: 12px;
+        padding: 5px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -91,61 +93,54 @@ df, sha, repo = carregar_sistema()
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # ESTRATÉGIA DE LOGO: Tenta carregar o arquivo local logo.png
+    # Tentativa de carregar logo.png (Renomeie sua imagem no GitHub para logo.png)
     try:
-        st.image("logo.png", width=250)
+        st.image("logo.png", width=240)
     except:
-        # Se não achar o arquivo local, tenta o link direto (RAW)
-        # Note que se o nome no GitHub tiver espaços/parênteses, esse link falha.
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=250)
+        # Link de backup se o nome ainda estiver com caracteres especiais
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png", width=240)
     
-    st.markdown("---")
-    menu = st.radio("Navegação", ["📋 Agenda de Viagens", "📝 Programar Nova Viagem", "💰 Financeiro e Edição"])
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    menu = st.radio("MÓDULOS:", ["📋 Agenda Global", "📝 Programar Viagem", "💰 Painel de Controle"])
 
 # 6. TELAS
-if menu == "📝 Programar Nova Viagem":
-    st.title("📝 Programar Nova Viagem")
-    with st.form("form_logistica"):
+if menu == "📝 Programar Viagem":
+    st.title("📝 Programar Viagem")
+    with st.form("form_v", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
-            nome = st.text_input("Passageiro (Nome Completo)").upper()
-            motorista = st.selectbox("Motorista", ["Ilson", "Antonio", "Outro"])
+            nome = st.text_input("Nome do Passageiro").upper()
+            motorista = st.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
         with c2:
-            data = st.date_input("Data da Viagem", datetime.now())
-            trajeto = st.selectbox("Trajeto", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
+            data = st.date_input("Data Programada", datetime.now())
+            trajeto = st.selectbox("Itinerário", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
         
-        if st.form_submit_button("Confirmar Agendamento"):
+        if st.form_submit_button("CONCLUIR AGENDAMENTO"):
             if nome and repo:
                 nova_viagem = pd.DataFrame([[nome, motorista, data.strftime('%d/%m/%Y'), trajeto]], columns=df.columns)
-                df_atualizado = pd.concat([df, nova_viagem], ignore_index=True)
-                csv_txt = df_atualizado.to_csv(index=False)
+                df_f = pd.concat([df, nova_viagem], ignore_index=True)
+                csv_data = df_f.to_csv(index=False)
                 
                 if sha:
-                    repo.update_file("dados_logistica.csv", "Registro de Viagem", csv_txt, sha)
+                    repo.update_file("dados_logistica.csv", "Registro", csv_data, sha)
                 else:
-                    repo.create_file("dados_logistica.csv", "Início do Banco", csv_txt)
+                    repo.create_file("dados_logistica.csv", "Init", csv_data)
                 
-                st.success(f"Viagem para {nome} salva com sucesso!")
+                st.success(f"Logística para {nome} confirmada!")
                 st.rerun()
-            else:
-                st.error("Preencha o nome do passageiro antes de salvar.")
 
-elif menu == "📋 Agenda de Viagens":
-    st.title("📋 Agenda de Logística")
-    if df.empty:
-        st.info("Não há viagens registradas no momento.")
-    else:
-        st.dataframe(df, width=1200)
+elif menu == "📋 Agenda Global":
+    st.title("📋 Fluxo de Viagens")
+    st.dataframe(df, width=1400) # Largura ampliada para visão ERP
 
-elif menu == "💰 Financeiro e Edição":
-    st.title("💰 Gestão de Registros")
-    st.markdown("Edite os dados diretamente na tabela abaixo e clique em salvar:")
+elif menu == "💰 Painel de Controle":
+    st.title("💰 Gestão de Dados")
+    st.info("Interface de edição direta no banco de dados.")
+    df_editado = st.data_editor(df, num_rows="dynamic", width=1400)
     
-    df_editado = st.data_editor(df, num_rows="dynamic", width=1200)
-    
-    if st.button("Salvar Todas as Alterações"):
+    if st.button("SALVAR TODAS AS ALTERAÇÕES"):
         if repo:
             csv_editado = df_editado.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Edição Manual", csv_editado, sha)
-            st.success("Dados atualizados no GitHub!")
+            repo.update_file("dados_logistica.csv", "Edição", csv_editado, sha)
+            st.success("Sincronizado com o repositório!")
             st.rerun()
