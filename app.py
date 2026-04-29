@@ -1,5 +1,12 @@
 import streamlit as st
 
+# Isso ajuda a evitar que o tradutor automático quebre o app
+st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
+
+# O restante do seu código vem abaixo...
+
+import streamlit as st
+
 try:
     import pandas as pd
     from github import Github
