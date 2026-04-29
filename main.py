@@ -4,90 +4,127 @@ from github import Github
 import io
 from datetime import datetime
 
-# 1. PREVENÇÃO CONTRA TRADUTOR
+# 1. IDIOMA E CONFIGURAÇÃO
 st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
-
-# 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX DESIGNER - PADRÃO SOLICITADO (CONGELADO)
+# 2. UI/UX - CSS RIGOROSO (SEM QUEBRAS DE LINHA NO CÓDIGO)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; min-width: 280px; }
     
-    /* LOGO COM SOMBRA PROFISSIONAL */
-    .logo-container {
-        text-align: center;
-        padding: 20px 10px;
-        filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8));
+    /* Efeito de Sombra na Logo */
+    [data-testid="stSidebar"] [data-testid="stImage"] img {
+        filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.7));
     }
 
-    /* CAIXAS DE PREENCHIMENTO - AZUL CLARO / LETRAS PRETAS */
+    /* Campos de Entrada: Azul Claro com Letras Pretas */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important;
         color: #000000 !important;
         border-radius: 8px !important;
-        height: 45px !important;
-        font-weight: 500 !important;
     }
     
-    /* Garante cor preta no texto digitado */
-    input, div[data-baseweb="select"] span { color: #000000 !important; }
+    /* Forçar cor preta no texto dos inputs */
+    input, div[data-baseweb="select"] span { color: #000000 !important; font-weight: 500 !important; }
 
-    /* Labels em Azul Marinho */
+    /* Labels e Títulos em Marinho */
     label, .stMarkdown p { color: #002D5E !important; font-weight: bold !important; }
+    h1, h2, h3 { color: #002D5E !important; font-weight: 700 !important; }
 
-    /* BOTÕES - AZUL CLARO / TEXTO MARINHO */
+    /* Botões: Azul Claro com Texto Marinho */
     div.stButton > button {
         background-color: #E1E8F0 !important;
         color: #002D5E !important;
         border: 2px solid #002D5E !important;
         border-radius: 8px !important;
         font-weight: 700 !important;
-        width: 100% !important;
         height: 50px !important;
+        width: 100% !important;
     }
-    div.stButton > button:hover {
-        background-color: #002D5E !important;
-        color: #E1E8F0 !important;
-    }
+    div.stButton > button:hover { background-color: #002D5E !important; color: #E1E8F0 !important; }
 
-    /* Tabelas Brancas */
-    [data-testid="stDataFrame"], [data-testid="stTable"], .stDataEditor {
-        background-color: #FFFFFF !important;
-        border-radius: 10px !important;
-    }
-    h1, h2, h3 { color: #002D5E !important; font-weight: 700 !important; }
+    /* Sidebar texto em branco */
     [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label { color: #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 4. BACKEND (CONEXÃO GITHUB)
-def carregar_sistema():
-    # Estrutura de colunas que VOCÊ pediu
-    colunas = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário", "Hotel (R$)", "Combustível (R$)", "Aéreo (R$)", "Outros (R$)", "Total (R$)"]
+# 3. CONEXÃO COM BANCO DE DADOS
+def carregar_dados():
+    cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário", "Hotel (R$)", "Combustível (R$)", "Aéreo (R$)", "Outros (R$)", "Total (R$)"]
     try:
         g = Github(st.secrets["GITHUB_TOKEN"])
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
         contents = repo.get_contents("dados_logistica.csv")
         df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
-        # Sincroniza colunas se o arquivo for antigo
-        for col in colunas:
-            if col not in df.columns: df[col] = 0.0 if "R$" in col else ""
+        for c in cols:
+            if c not in df.columns: df[c] = 0.0 if "R$" in c else ""
         return df, contents.sha, repo
     except:
-        return pd.DataFrame(columns=colunas), None, None
+        return pd.DataFrame(columns=cols), None, None
 
-df, sha, repo = carregar_sistema()
+df, sha, repo = carregar_dados()
 
-# 5. SIDEBAR
+# 4. MENU LATERAL
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    # Link direto da logo (Certifique-se que o nome no GitHub é exatamente logo.png)
-    logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
-    st.markdown(f'<div class="logo-container"><img src="{logo_path}" width="220"></div>', unsafe_allow_html=True)
+    # Link direto da logo Aura Minerals
+    logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
+    st.image(logo_url, width=220)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "
+    menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
+
+# 5. MÓDULOS DO SISTEMA
+
+if menu == "📋 Agenda de Viagens":
+    st.title("📋 Agenda de Viagens")
+    if not df.empty:
+        st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário"]], use_container_width=True)
+    else:
+        st.info("Nenhum registro encontrado.")
+
+elif menu == "📝 Programar Viagem":
+    st.title("📝 Programar Viagem")
+    with st.form("form_registro", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            pax = st.text_input("Nome do Passageiro").upper()
+            mot = st.selectbox("Motorista", ["Ilson", "Antonio", "Outro"])
+            v_h = st.number_input("Valor Hotel (R$)", min_value=0.0)
+            v_a = st.number_input("Valor Aéreo (R$)", min_value=0.0)
+        with c2:
+            dt = st.date_input("Data", datetime.now())
+            traj = st.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
+            v_c = st.number_input("Valor Combustível (R$)", min_value=0.0)
+            v_o = st.number_input("Outros Custos (R$)", min_value=0.0)
+        
+        obs = st.text_input("Descrição (Obrigatório para 'Outro' ou Observações)")
+
+        if st.form_submit_button("GRAVAR REGISTRO"):
+            if pax and repo:
+                total = v_h + v_c + v_a + v_o
+                nova_linha = pd.DataFrame([[pax, mot, dt.strftime('%d/%m/%Y'), traj, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
+                df_atualizado = pd.concat([df, nova_linha], ignore_index=True)
+                csv_txt = df_atualizado.to_csv(index=False)
+                if sha:
+                    repo.update_file("dados_logistica.csv", "Registro", csv_txt, sha)
+                else:
+                    repo.create_file("dados_logistica.csv", "Início", csv_txt)
+                st.success("Dados salvos com sucesso!")
+                st.rerun()
+
+elif menu == "💰 Financeiro":
+    st.title("💰 Financeiro")
+    st.write("Ajuste os valores e clique em sincronizar:")
+    df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+    
+    if st.button("SINCRONIZAR FINANCEIRO"):
+        if repo:
+            df_ed["Total (R$)"] = df_ed["Hotel (R$)"] + df_ed["Combustível (R$)"] + df_ed["Aéreo (R$)"] + df_ed["Outros (R$)"]
+            csv_edit = df_ed.to_csv(index=False)
+            repo.update_file("dados_logistica.csv", "Update", csv_edit, sha)
+            st.success("Banco de dados atualizado!")
+            st.rerun()
