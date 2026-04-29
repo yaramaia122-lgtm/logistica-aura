@@ -4,121 +4,84 @@ from github import Github
 import io
 from datetime import datetime
 
-# 1. CONFIGURACAO
-st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
+# 1. CONFIGURAÇÃO DE ALTO NÍVEL
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - DESIGN CONGELADO (AZUL CLARO E LETRAS PRETAS)
+# 2. DESIGN "CLEAN" (AZUL CLARO, MARINHO E PRETO)
+# Foquei em remover sombras internas que deixam o app com aspecto de "velho"
 st.markdown("""
     <style>
+    /* Fundo principal limpo */
     .stApp { background-color: #FFFFFF; }
-    [data-testid="stSidebar"] { background-color: #002D5E !important; min-width: 280px; }
     
-    /* SOMBRA NA LOGO */
+    /* Sidebar Marinho Profissional */
+    [data-testid="stSidebar"] {
+        background-color: #002D5E !important;
+        border-right: 1px solid #E1E8F0;
+    }
+    
+    /* Efeito de Sombra Suave na Logo Aura */
     [data-testid="stSidebar"] [data-testid="stImage"] img {
-        filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.7));
+        filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.5));
+        margin-bottom: 20px;
     }
 
-    /* CAIXAS DE ENTRADA - AZUL CLARO / LETRAS PRETAS */
+    /* CAIXAS DE ENTRADA: Azul Gelo (#F0F7FF) com texto Preto Puro (#000000) */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
-        border: 2px solid #002D5E !important;
+        border: 1px solid #002D5E !important;
         color: #000000 !important;
-        border-radius: 8px !important;
-        height: 45px !important;
+        border-radius: 6px !important;
+        font-size: 16px !important;
     }
     
-    input, div[data-baseweb="select"] span { color: #000000 !important; }
+    /* Forçar texto preto em listas de seleção */
+    div[data-baseweb="select"] span { color: #000000 !important; }
 
-    /* LABELS EM MARINHO */
-    label, .stMarkdown p { color: #002D5E !important; font-weight: bold !important; }
-
-    /* BOTOES - AZUL CLARO / TEXTO MARINHO */
+    /* BOTÕES: Azul Claro com Texto Marinho (Alta Visibilidade) */
     div.stButton > button {
         background-color: #E1E8F0 !important;
         color: #002D5E !important;
-        border: 2px solid #002D5E !important;
+        border: 1px solid #002D5E !important;
         font-weight: 700 !important;
-        width: 100% !important;
-        height: 50px !important;
+        border-radius: 8px !important;
+        height: 48px !important;
+        transition: 0.3s;
     }
+    div.stButton > button:hover {
+        background-color: #002D5E !important;
+        color: #FFFFFF !important;
+    }
+
+    /* Títulos e Labels */
+    h1, h2, h3 { color: #002D5E !important; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    label { color: #002D5E !important; font-weight: 600 !important; margin-bottom: 5px !important; }
     
+    /* Texto Sidebar em Branco para contraste */
     [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label { color: #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. BACKEND - CONEXAO GITHUB
-def carregar_sistema():
+# 3. CONEXÃO SEGURA (GITHUB)
+def carregar_dados():
     colunas = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerario", "Hotel", "Combustivel", "Aereo", "Outros", "Total"]
     try:
         g = Github(st.secrets["GITHUB_TOKEN"])
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
         contents = repo.get_contents("dados_logistica.csv")
         df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
+        # Garante que colunas novas não quebrem o app
         for col in colunas:
-            if col not in df.columns:
-                df[col] = 0.0 if col in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
+            if col not in df.columns: df[col] = 0.0 if col in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
         return df, contents.sha, repo
     except:
         return pd.DataFrame(columns=colunas), None, None
 
-df, sha, repo = carregar_sistema()
+df, sha, repo = carregar_dados()
 
-# 4. SIDEBAR
+# 4. BARRA LATERAL
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    # Link da logo - Nomeado como logo.png no seu GitHub
-    logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
-    st.image(logo_url, width=220)
-    st.markdown("<br>", unsafe_allow_html=True)
-    menu = st.radio("NAVEGACAO:", ["Agenda", "Programar Viagem", "Financeiro"])
-
-# 5. TELAS
-
-if menu == "Agenda":
-    st.title("📋 Agenda de Viagens")
-    if not df.empty:
-        st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerario"]], use_container_width=True)
-    else:
-        st.info("Nenhum registro.")
-
-elif menu == "Programar Viagem":
-    st.title("📝 Programar Viagem")
-    with st.form("form_v", clear_on_submit=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            nome = st.text_input("Nome do Passageiro").upper()
-            motorista = st.selectbox("Motorista", ["Ilson", "Antonio", "Outro"])
-            v_hotel = st.number_input("Valor Hotel (R$)", min_value=0.0)
-            v_aereo = st.number_input("Valor Aéreo (R$)", min_value=0.0)
-        with c2:
-            data = st.date_input("Data da Viagem", datetime.now())
-            trajeto = st.selectbox("Itinerario", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
-            v_comb = st.number_input("Valor Combustivel (R$)", min_value=0.0)
-            v_outros = st.number_input("Outros Custos (R$)", min_value=0.0)
-        
-        obs = st.text_input("Descricao de Outros / Observacoes")
-
-        if st.form_submit_button("GRAVAR REGISTRO"):
-            if nome and repo:
-                total = v_hotel + v_comb + v_aereo + v_outros
-                nova_linha = pd.DataFrame([[nome, motorista, data.strftime('%d/%m/%Y'), trajeto, obs, v_hotel, v_comb, v_aereo, v_outros, total]], columns=df.columns)
-                df_final = pd.concat([df, nova_linha], ignore_index=True)
-                csv_data = df_final.to_csv(index=False)
-                
-                # Feedback e Salvamento
-                repo.update_file("dados_logistica.csv", "Update", csv_data, sha)
-                st.success("✅ VIAGEM PROGRAMADA")
-                st.rerun()
-
-elif menu == "Financeiro":
-    st.title("💰 Financeiro")
-    df_edit = st.data_editor(df, num_rows="dynamic", use_container_width=True)
-    
-    if st.button("CONFIRMAR ALTERACOES"):
-        if repo:
-            df_edit["Total"] = df_edit["Hotel"] + df_edit["Combustivel"] + df_edit["Aereo"] + df_edit["Outros"]
-            csv_edit = df_edit.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Edit", csv_edit, sha)
-            st.success("✅ ALTERACOES REGISTRADAS")
-            st.rerun()
+    logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
+    st.image(logo_path, width=230)
+    st.markdown("
