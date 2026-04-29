@@ -10,29 +10,41 @@ st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 # 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX PREMIUM DESIGN (PADRONIZADO E CONGELADO)
+# 3. UI/UX DESIGNER (SOMENTE ALTERAÇÕES SOLICITADAS)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
+    
+    /* Barra Lateral */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         min-width: 280px;
     }
-    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
-        color: #FFFFFF !important;
+    
+    /* DESTAQUE DA LOGO COM SOMBRA */
+    .logo-shadow {
+        filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.5));
+        transition: all 0.3s ease;
     }
-    /* Caixas de Entrada Padronizadas */
+
+    /* CAIXAS DE PREENCHIMENTO - Fundo Azul Claro e Letras Pretas */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
         border: 1px solid #D1D9E6 !important;
-        color: #002D5E !important;
+        color: #000000 !important; /* Letras Pretas conforme solicitado */
         border-radius: 8px !important;
         height: 45px !important;
     }
-    /* Botões Padronizados */
+    
+    /* Garante que o texto dentro do seletor também seja preto */
+    div[data-baseweb="select"] > div {
+        color: #000000 !important;
+    }
+
+    /* BOTÕES - Azul Claro e Azul Marinho */
     div.stButton > button {
-        background-color: #EBF2FA;
-        color: #002D5E !important;
+        background-color: #E1E8F0 !important; /* Azul Claro solicitado */
+        color: #002D5E !important; /* Azul Marinho solicitado */
         border: 1px solid #002D5E;
         border-radius: 8px;
         font-weight: 700;
@@ -40,19 +52,22 @@ st.markdown("""
         height: 50px;
         transition: all 0.3s;
     }
+    
     div.stButton > button:hover {
-        background-color: #002D5E !important;
-        color: #FFFFFF !important;
+        background-color: #002D5E !important; /* Azul Marinho no hover */
+        color: #E1E8F0 !important; /* Azul Claro no hover */
     }
-    /* Tabelas e Planilhas Padronizadas com Fundo Branco */
+
+    /* Tabelas e Planilhas */
     [data-testid="stDataFrame"], [data-testid="stTable"], .stDataEditor {
         background-color: #FFFFFF !important;
         border-radius: 10px !important;
     }
-    div[data-testid="stDataFrame"] div[data-testid="stTable"] {
-        color: #1A1A1A !important;
-    }
+    
     h1, h2, h3 { color: #002D5E !important; font-weight: 700; }
+    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
+        color: #FFFFFF !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -68,33 +83,30 @@ def carregar_sistema():
         return pd.DataFrame(columns=["Passageiro", "Motorista", "Data", "Trajeto", "Valor (R$)"]), None, None
 
 df, sha, repo = carregar_sistema()
-
-# Garante que a coluna de Valor exista
 if "Valor (R$)" not in df.columns:
     df["Valor (R$)"] = 0.0
 
 # 5. SIDEBAR / MENU
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    # Tenta carregar a logo.png local primeiro (recomendado renomear no GitHub)
-    try:
-        st.image("logo.png", width=240)
-    except:
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png", width=240)
+    
+    # URL da logo com aplicação de classe CSS para sombra
+    logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png"
+    
+    # Renderizando a logo com HTML para permitir a sombra (drop-shadow)
+    st.markdown(f'<div class="logo-shadow"><img src="{logo_path}" width="240"></div>', unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
 
-# 6. TELAS (FUNÇÕES ESPECÍFICAS)
+# 6. TELAS
 
 if menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
-    st.markdown("### Fluxo Logístico Unidade Apoena")
     st.dataframe(df, use_container_width=True)
 
 elif menu == "📝 Programar Viagem":
     st.title("📝 Programar Viagem")
-    st.markdown("### Cadastro de Itinerários")
     with st.form("form_v", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
@@ -115,20 +127,16 @@ elif menu == "📝 Programar Viagem":
                     repo.update_file("dados_logistica.csv", "Reg", csv_data, sha)
                 else:
                     repo.create_file("dados_logistica.csv", "Init", csv_data)
-                st.success(f"Viagem para {nome} salva com sucesso!")
+                st.success(f"Viagem para {nome} salva!")
                 st.rerun()
 
 elif menu == "💰 Financeiro":
     st.title("💰 Financeiro")
-    st.markdown("### Gestão de Custos e Edição")
-    
-    # Editor de dados com fundo branco garantido
     df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("CONFIRMAR ALTERAÇÕES FINANCEIRAS"):
         if repo:
             csv_editado = df_editado.to_csv(index=False)
-            # Correção do erro de syntax (fechamento de aspas e parênteses)
             repo.update_file("dados_logistica.csv", "Edit Financeiro", csv_editado, sha)
-            st.success("Dados financeiros sincronizados!")
+            st.success("Financeiro atualizado!")
             st.rerun()
