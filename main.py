@@ -11,7 +11,7 @@ st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 # 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX DESIGNER - ESTILO PADRONIZADO (AZUL CLARO E LETRAS PRETAS)
+# 3. UI/UX DESIGNER - ESTILO PADRONIZADO COM DESTAQUE NA LOGO
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
@@ -22,18 +22,25 @@ st.markdown("""
         min-width: 280px;
     }
     
-    /* DESTAQUE DA LOGO COM SOMBRA */
-    .logo-shadow {
-        filter: drop-shadow(0px 6px 12px rgba(0,0,0,0.6));
+    /* --- EFEITO DE SOMBRA PROFISSIONAL NA LOGO --- */
+    .logo-container {
         text-align: center;
-        padding: 10px;
+        padding: 20px 10px;
+    }
+    .logo-container img {
+        /* Filtro que cria sombra acompanhando o desenho da logo */
+        filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8));
+        transition: transform 0.3s ease;
+    }
+    .logo-container img:hover {
+        transform: scale(1.02); /* Leve pulso ao passar o mouse */
     }
 
     /* CAIXAS DE PREENCHIMENTO - AZUL CLARO E LETRAS PRETAS */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important;
-        color: #000000 !important; /* Letras pretas */
+        color: #000000 !important; /* Letras pretas conforme solicitado */
         border-radius: 8px !important;
         height: 45px !important;
         font-weight: 500 !important;
@@ -50,7 +57,7 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* BOTÕES - AZUL CLARO COM TEXTO MARINHO */
+    /* BOTÕES - AZUL CLARO COM TEXTO MARINHO (ESTILO GRAVAÇÃO) */
     div.stButton > button {
         background-color: #E1E8F0 !important;
         color: #002D5E !important;
@@ -59,6 +66,7 @@ st.markdown("""
         font-weight: 700 !important;
         width: 100% !important;
         height: 50px !important;
+        transition: all 0.3s !important;
     }
     
     div.stButton > button:hover {
@@ -81,7 +89,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 4. BACKEND (CONEXÃO GITHUB)
+# 4. BACKEND (CONEXÃO GITHUB - ESTRUTURA MANTIDA)
 def carregar_sistema():
     colunas = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário", "Hotel (R$)", "Combustível (R$)", "Aéreo (R$)", "Outros (R$)", "Total (R$)"]
     try:
@@ -102,25 +110,24 @@ df, sha, repo = carregar_sistema()
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Tentativa de carregar a logo.png localmente para evitar erros de link
-    if os.path.exists("logo.png"):
-        st.markdown('<div class="logo-shadow">', unsafe_allow_html=True)
-        st.image("logo.png", width=220)
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        # Link de reserva caso o arquivo local falhe
-        logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
-        st.markdown(f'<div class="logo-shadow"><img src="{logo_url}" width="220"></div>', unsafe_allow_html=True)
+    # ESTRATÉGIA DE LOGO: Usando HTML para aplicar a classe de sombra (.logo-container)
+    # Lembre-se: O arquivo deve estar no GitHub como logo.png
+    logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
+    
+    st.markdown(f'''
+        <div class="logo-container">
+            <img src="{logo_path}" width="220">
+        </div>
+    ''', unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
 
-# 6. TELAS
+# 6. TELAS (ESTRUTURA MANTIDA)
 
 if menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
     if not df.empty:
-        # Agenda oculta o valor conforme solicitado
         st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário"]], use_container_width=True)
     else:
         st.info("Nenhum registro encontrado.")
@@ -156,22 +163,21 @@ elif menu == "📝 Programar Viagem":
                     repo.update_file("dados_logistica.csv", "Registro", csv_data, sha)
                 else:
                     repo.create_file("dados_logistica.csv", "Início", csv_data)
-                st.success(f"Logística registrada com sucesso!")
+                st.success(f"Dados salvos com sucesso!")
                 st.rerun()
 
 elif menu == "💰 Financeiro":
     st.title("💰 Financeiro")
-    st.markdown("### Controle Geral de Custos e Edição")
+    st.markdown("### Gestão de Custos e Edição")
     df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("CONFIRMAR ALTERAÇÕES"):
         if repo:
-            # Recalcula o total automático se você mudar algum valor na tabela
             df_editado["Total (R$)"] = (df_editado["Hotel (R$)"] + 
                                        df_editado["Combustível (R$)"] + 
                                        df_editado["Aéreo (R$)"] + 
                                        df_editado["Outros (R$)"])
             csv_editado = df_editado.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Sincronização Financeira", csv_editado, sha)
-            st.success("Financeiro atualizado!")
+            repo.update_file("dados_logistica.csv", "Sync", csv_editado, sha)
+            st.success("Financeiro sincronizado!")
             st.rerun()
