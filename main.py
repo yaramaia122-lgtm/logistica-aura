@@ -10,7 +10,7 @@ st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 # 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX DESIGNER - ESTILO PADRONIZADO E CORES SOLICITADAS
+# 3. UI/UX DESIGNER - ESTILO PADRONIZADO E CONGELADO
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
@@ -80,14 +80,12 @@ st.markdown("""
 
 # 4. BACKEND (CONEXÃO GITHUB)
 def carregar_sistema():
-    # Estrutura completa de colunas
-    colunas = ["Passageiro", "Motorista", "Data", "Trajeto", "Hotel (R$)", "Combustível (R$)", "Aéreo (R$)", "Outros (R$)", "Desc. Outros", "Total (R$)"]
+    colunas = ["Passageiro", "Motorista", "Data", "Trajeto", "Desc. Outros", "Hotel (R$)", "Combustível (R$)", "Aéreo (R$)", "Outros (R$)", "Total (R$)"]
     try:
         g = Github(st.secrets["GITHUB_TOKEN"])
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
         contents = repo.get_contents("dados_logistica.csv")
         df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
-        # Garante colunas financeiras
         for col in colunas:
             if col not in df.columns:
                 df[col] = 0.0 if "R$" in col else ""
@@ -100,8 +98,10 @@ df, sha, repo = carregar_sistema()
 # 5. SIDEBAR / MENU
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png"
-    st.markdown(f'<div class="logo-shadow"><img src="{logo_path}" width="220"></div>', unsafe_allow_html=True)
+    # Link direto para garantir o carregamento da imagem
+    logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png"
+    st.markdown(f'<div class="logo-shadow"><img src="{logo_url}" width="220"></div>', unsafe_allow_html=True)
+    
     st.markdown("<br>", unsafe_allow_html=True)
     menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
 
@@ -110,8 +110,8 @@ with st.sidebar:
 if menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
     if not df.empty:
-        # Mostra apenas o que é logístico na Agenda
-        st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto"]], use_container_width=True)
+        # Agenda foca no Passageiro, Motorista, Data, Trajeto e Observações do Itinerário
+        st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Desc. Outros"]], use_container_width=True)
     else:
         st.info("Nenhum registro encontrado.")
 
@@ -126,40 +126,43 @@ elif menu == "📝 Programar Viagem":
             v_aereo = st.number_input("Passagem Aérea (R$)", min_value=0.0, step=1.0)
         with c2:
             data = st.date_input("Data da Viagem", datetime.now())
-            trajeto = st.selectbox("Itinerário", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
+            trajeto = st.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
             v_comb = st.number_input("Combustível (R$)", min_value=0.0, step=1.0)
             v_outros = st.number_input("Outros Custos (R$)", min_value=0.0, step=1.0)
         
-        desc_outros = st.text_input("Descrição dos Outros Custos")
+        # Descrição que aparece tanto na Agenda quanto no Financeiro
+        obs_itinerario = st.text_input("Descrição de Outros / Observações do Itinerário")
         
         if st.form_submit_button("SALVAR REGISTRO"):
             if nome and repo:
                 total_viagem = v_hotel + v_comb + v_aereo + v_outros
                 nova_viagem = pd.DataFrame([[
                     nome, motorista, data.strftime('%d/%m/%Y'), trajeto, 
-                    v_hotel, v_comb, v_aereo, v_outros, desc_outros, total_viagem
+                    obs_itinerario, v_hotel, v_comb, v_aereo, v_outros, total_viagem
                 ]], columns=df.columns)
                 
                 df_f = pd.concat([df, nova_viagem], ignore_index=True)
                 csv_data = df_f.to_csv(index=False)
                 if sha:
-                    repo.update_file("dados_logistica.csv", "Registro Financeiro", csv_data, sha)
+                    repo.update_file("dados_logistica.csv", "Registro Completo", csv_data, sha)
                 else:
-                    repo.create_file("dados_logistica.csv", "Init", csv_data)
-                st.success(f"Viagem de {nome} registrada!")
+                    repo.create_file("dados_logistica.csv", "Início", csv_data)
+                st.success(f"Logística e Financeiro de {nome} salvos!")
                 st.rerun()
 
 elif menu == "💰 Financeiro":
     st.title("💰 Financeiro")
-    st.markdown("### Controle Geral de Custos")
-    # Aqui aparece tudo, incluindo Hotel, Aéreo, etc.
+    st.markdown("### Gestão de Custos e Lançamentos")
     df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("CONFIRMAR ALTERAÇÕES"):
         if repo:
-            # Recalcula o total automático se você mudar algum valor na tabela
-            df_editado["Total (R$)"] = df_editado["Hotel (R$)"] + df_editado["Combustível (R$)"] + df_editado["Aéreo (R$)"] + df_editado["Outros (R$)"]
+            # Recalcula o total caso valores tenham sido editados manualmente na tabela
+            df_editado["Total (R$)"] = (df_editado["Hotel (R$)"] + 
+                                       df_editado["Combustível (R$)"] + 
+                                       df_editado["Aéreo (R$)"] + 
+                                       df_editado["Outros (R$)"])
             csv_editado = df_editado.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Update Financeiro", csv_editado, sha)
-            st.success("Financeiro sincronizado com sucesso!")
+            repo.update_file("dados_logistica.csv", "Edição Financeiro", csv_editado, sha)
+            st.success("Planilha sincronizada!")
             st.rerun()
