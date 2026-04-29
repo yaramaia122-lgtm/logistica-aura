@@ -4,17 +4,17 @@ from github import Github
 import io
 from datetime import datetime
 
-# 1. CONFIGURAÇÃO E TRADUTOR
+# 1. TRADUTOR E CONFIGURAÇÃO
 st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - DESIGN PADRONIZADO (SOMBRA E CORES)
+# 2. UI/UX - DESIGN PADRONIZADO (SOMBRA NA LOGO E CORES SOLICITADAS)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; min-width: 280px; }
     
-    /* Sombra na Logo via CSS */
+    /* Efeito de Sombra na Logo */
     [data-testid="stSidebar"] [data-testid="stImage"] img {
         filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.7));
     }
@@ -63,12 +63,13 @@ df, sha, repo = carregar_dados()
 # 4. MENU LATERAL
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
+    # Logo oficial
     logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
     st.image(logo_url, width=220)
     st.markdown("<br>", unsafe_allow_html=True)
     menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda", "📝 Programar Viagem", "💰 Financeiro"])
 
-# 5. MÓDULOS COM FEEDBACK DE AVISO
+# 5. MÓDULOS
 
 if menu == "📋 Agenda":
     st.title("📋 Agenda de Viagens")
@@ -92,20 +93,16 @@ elif menu == "📝 Programar Viagem":
             v_c = st.number_input("Valor Combustível (R$)", min_value=0.0)
             v_o = st.number_input("Outros Custos (R$)", min_value=0.0)
         
-        obs = st.text_input("Observações / Itinerário Detalhado")
+        # Campo de descrição condicional
+        lbl = "Descreva o Itinerário (Outro)" if traj == "Outro" else "Observações Adicionais"
+        obs = st.text_input(lbl)
 
-        if st.form_submit_button("GRAVAR VIAGEM"):
+        if st.form_submit_button("GRAVAR REGISTRO"):
             if pax and repo:
                 total = v_h + v_c + v_a + v_o
-                nova_linha = pd.DataFrame([[pax, mot, dt.strftime('%d/%m/%Y'), traj, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
-                df_up = pd.concat([df, nova_linha], ignore_index=True)
+                nova = pd.DataFrame([[pax, mot, dt.strftime('%d/%m/%Y'), traj, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
+                df_up = pd.concat([df, nova], ignore_index=True)
                 csv_txt = df_up.to_csv(index=False)
                 
                 if sha:
-                    repo.update_file("dados_logistica.csv", f"Registro: {pax}", csv_txt, sha)
-                else:
-                    repo.create_file("dados_logistica.csv", "Início", csv_txt)
-                
-                # MENSAGEM DE AVISO SOLICITADA
-                st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
-                st.toast(f"Registro de {pax} salvo
+                    repo.update_file("
