@@ -4,22 +4,22 @@ from github import Github
 import io
 from datetime import datetime
 
-# 1. IDIOMA E CONFIGURAÇÃO
+# 1. CONFIGURAÇÃO E TRADUTOR
 st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - CSS RIGOROSO (SEM QUEBRAS DE LINHA NO CÓDIGO)
+# 2. UI/UX - DESIGN PADRONIZADO (SOMBRA E CORES)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; min-width: 280px; }
     
-    /* Efeito de Sombra na Logo */
+    /* Sombra na Logo via CSS */
     [data-testid="stSidebar"] [data-testid="stImage"] img {
         filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.7));
     }
 
-    /* Campos de Entrada: Azul Claro com Letras Pretas */
+    /* Inputs: Azul Claro com Letras Pretas */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important;
@@ -27,31 +27,24 @@ st.markdown("""
         border-radius: 8px !important;
     }
     
-    /* Forçar cor preta no texto dos inputs */
     input, div[data-baseweb="select"] span { color: #000000 !important; font-weight: 500 !important; }
 
-    /* Labels e Títulos em Marinho */
+    /* Labels e Botões */
     label, .stMarkdown p { color: #002D5E !important; font-weight: bold !important; }
-    h1, h2, h3 { color: #002D5E !important; font-weight: 700 !important; }
-
-    /* Botões: Azul Claro com Texto Marinho */
     div.stButton > button {
         background-color: #E1E8F0 !important;
         color: #002D5E !important;
         border: 2px solid #002D5E !important;
-        border-radius: 8px !important;
         font-weight: 700 !important;
-        height: 50px !important;
         width: 100% !important;
+        height: 50px !important;
     }
     div.stButton > button:hover { background-color: #002D5E !important; color: #E1E8F0 !important; }
-
-    /* Sidebar texto em branco */
     [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label { color: #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. CONEXÃO COM BANCO DE DADOS
+# 3. BACKEND - CONEXÃO GITHUB
 def carregar_dados():
     cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário", "Hotel (R$)", "Combustível (R$)", "Aéreo (R$)", "Outros (R$)", "Total (R$)"]
     try:
@@ -70,16 +63,14 @@ df, sha, repo = carregar_dados()
 # 4. MENU LATERAL
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    # Link direto da logo Aura Minerals
     logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
     st.image(logo_url, width=220)
-    
     st.markdown("<br>", unsafe_allow_html=True)
-    menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
+    menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda", "📝 Programar Viagem", "💰 Financeiro"])
 
-# 5. MÓDULOS DO SISTEMA
+# 5. MÓDULOS COM FEEDBACK DE AVISO
 
-if menu == "📋 Agenda de Viagens":
+if menu == "📋 Agenda":
     st.title("📋 Agenda de Viagens")
     if not df.empty:
         st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário"]], use_container_width=True)
@@ -88,7 +79,7 @@ if menu == "📋 Agenda de Viagens":
 
 elif menu == "📝 Programar Viagem":
     st.title("📝 Programar Viagem")
-    with st.form("form_registro", clear_on_submit=True):
+    with st.form("form_viagem", clear_on_submit=True):
         c1, c2 = st.columns(2)
         with c1:
             pax = st.text_input("Nome do Passageiro").upper()
@@ -101,30 +92,20 @@ elif menu == "📝 Programar Viagem":
             v_c = st.number_input("Valor Combustível (R$)", min_value=0.0)
             v_o = st.number_input("Outros Custos (R$)", min_value=0.0)
         
-        obs = st.text_input("Descrição (Obrigatório para 'Outro' ou Observações)")
+        obs = st.text_input("Observações / Itinerário Detalhado")
 
-        if st.form_submit_button("GRAVAR REGISTRO"):
+        if st.form_submit_button("GRAVAR VIAGEM"):
             if pax and repo:
                 total = v_h + v_c + v_a + v_o
                 nova_linha = pd.DataFrame([[pax, mot, dt.strftime('%d/%m/%Y'), traj, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
-                df_atualizado = pd.concat([df, nova_linha], ignore_index=True)
-                csv_txt = df_atualizado.to_csv(index=False)
+                df_up = pd.concat([df, nova_linha], ignore_index=True)
+                csv_txt = df_up.to_csv(index=False)
+                
                 if sha:
-                    repo.update_file("dados_logistica.csv", "Registro", csv_txt, sha)
+                    repo.update_file("dados_logistica.csv", f"Registro: {pax}", csv_txt, sha)
                 else:
                     repo.create_file("dados_logistica.csv", "Início", csv_txt)
-                st.success("Dados salvos com sucesso!")
-                st.rerun()
-
-elif menu == "💰 Financeiro":
-    st.title("💰 Financeiro")
-    st.write("Ajuste os valores e clique em sincronizar:")
-    df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
-    
-    if st.button("SINCRONIZAR FINANCEIRO"):
-        if repo:
-            df_ed["Total (R$)"] = df_ed["Hotel (R$)"] + df_ed["Combustível (R$)"] + df_ed["Aéreo (R$)"] + df_ed["Outros (R$)"]
-            csv_edit = df_ed.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Update", csv_edit, sha)
-            st.success("Banco de dados atualizado!")
-            st.rerun()
+                
+                # MENSAGEM DE AVISO SOLICITADA
+                st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
+                st.toast(f"Registro de {pax} salvo
