@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="Aura Logistics", layout="wide")
 
-# 2. CORES TRAVADAS (PARA NÃO MUDAR MAIS)
+# 2. PADRÃO VISUAL (AZUL MARINHO, AZUL CLARO E LETRAS PRETAS)
 st.markdown("""
 <style>
     .stApp {background-color: #FFFFFF;}
@@ -18,7 +18,7 @@ st.markdown("""
         filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.7));
     }
 
-    /* CAIXAS AZUL CLARO / LETRAS PRETAS FORÇADAS */
+    /* CAIXAS AZUL CLARO / LETRAS PRETAS */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], 
     .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
@@ -26,12 +26,14 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* Garante que o texto digitado seja preto */
+    /* Forçar cor preta no texto */
     input { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
     div[data-baseweb="select"] span { color: #000000 !important; }
 
-    /* Labels e Botões */
+    /* Labels em Azul Marinho */
     label, .stMarkdown p {color: #002D5E !important; font-weight: bold !important;}
+    
+    /* Botões */
     div.stButton > button {
         background-color: #E1E8F0 !important;
         color: #002D5E !important;
@@ -41,14 +43,14 @@ st.markdown("""
         height: 50px !important;
     }
     
-    /* Texto Sidebar sempre branco */
+    /* Sidebar sempre com texto branco */
     [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label {
         color: #FFFFFF !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. BANCO DE DADOS (ESTRUTURA ORIGINAL)
+# 3. BANCO DE DADOS
 def carregar_dados():
     cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerario", "Hotel", "Combustivel", "Aereo", "Outros", "Total"]
     try:
@@ -67,6 +69,7 @@ df, sha, repo = carregar_dados()
 # 4. SIDEBAR
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
+    # Logo do seu repositório
     st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
     st.markdown("---")
     menu = st.radio("NAVEGACAO", ["Agenda", "Programar Viagem", "Financeiro"])
@@ -91,7 +94,7 @@ elif menu == "Programar Viagem":
         
         v_a = st.number_input("Aereo (R$)", min_value=0.0)
         v_o = st.number_input("Outros (R$)", min_value=0.0)
-        obs = st.text_input("Descricao / Observacoes")
+        obs = st.text_input("Observacoes")
 
         if st.form_submit_button("GRAVAR REGISTRO"):
             if nome and repo:
@@ -99,7 +102,7 @@ elif menu == "Programar Viagem":
                 nova = pd.DataFrame([[nome, motorista, data.strftime('%d/%m/%Y'), trajeto, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
                 df_f = pd.concat([df, nova], ignore_index=True)
                 repo.update_file("dados_logistica.csv", "Registro", df_f.to_csv(index=False), sha)
-                # MENSAGEM QUE VOCÊ PEDIU
+                # MENSAGEM DE SUCESSO
                 st.success("✅ VIAGEM PROGRAMADA COM SUCESSO")
                 st.rerun()
 
@@ -110,6 +113,5 @@ elif menu == "Financeiro":
         if repo:
             df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
             repo.update_file("dados_logistica.csv", "Finance", df_ed.to_csv(index=False), sha)
-            # MENSAGEM QUE VOCÊ PEDIU
             st.success("✅ ALTERACOES REGISTRADAS")
             st.rerun()
