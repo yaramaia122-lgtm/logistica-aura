@@ -10,24 +10,17 @@ st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 # 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX PREMIUM DESIGN (Foco em Profissionalismo e Tabelas Claras)
+# 3. UI/UX PREMIUM DESIGN
 st.markdown("""
     <style>
-    /* Fundo Principal */
     .stApp { background-color: #FFFFFF; }
-    
-    /* Barra Lateral - Azul Marinho Aura */
     [data-testid="stSidebar"] {
         background-color: #002D5E !important;
         min-width: 280px;
     }
-    
-    /* Textos da Barra Lateral */
     [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label {
         color: #FFFFFF !important;
     }
-
-    /* CAIXAS DE ENTRADA - Azul Gelo com Borda Suave */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input {
         background-color: #F0F7FF !important; 
         border: 1px solid #D1D9E6 !important;
@@ -35,8 +28,6 @@ st.markdown("""
         border-radius: 8px !important;
         height: 45px !important;
     }
-
-    /* BOTÕES - Azul Suave (Moderno) */
     div.stButton > button {
         background-color: #EBF2FA;
         color: #002D5E !important;
@@ -46,25 +37,18 @@ st.markdown("""
         width: 100%;
         transition: all 0.3s;
     }
-    
     div.stButton > button:hover {
         background-color: #002D5E !important;
         color: #FFFFFF !important;
     }
-
-    /* FORÇAR FUNDO BRANCO NAS PLANILHAS (TABELAS) */
-    /* Isso remove o fundo preto que o Streamlit às vezes força */
     [data-testid="stDataFrame"], [data-testid="stTable"], .stDataEditor {
         background-color: #FFFFFF !important;
         border-radius: 10px !important;
         padding: 5px;
     }
-    
-    /* Estilização interna da tabela para letras escuras */
     div[data-testid="stDataFrame"] div[data-testid="stTable"] {
         color: #1A1A1A !important;
     }
-
     h1, h2, h3 { color: #002D5E !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -78,22 +62,20 @@ def carregar_sistema():
         df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
         return df, contents.sha, repo
     except:
-        return pd.DataFrame(columns=["Passageiro", "Motorista", "Data", "Trajeto"]), None, None
+        return pd.DataFrame(columns=["Passageiro", "Motorista", "Data", "Trajeto", "Valor (R$)"]), None, None
 
 df, sha, repo = carregar_sistema()
 
 # 5. SIDEBAR / MENU
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Lembre-se de renomear no GitHub para logo.png
     try:
         st.image("logo.png", width=240)
     except:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png", width=240)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Controle de Dados"])
+    menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
 
 # 6. TELAS
 if menu == "📝 Programar Viagem":
@@ -107,9 +89,11 @@ if menu == "📝 Programar Viagem":
             data = st.date_input("Data", datetime.now())
             trajeto = st.selectbox("Trajeto", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
         
+        valor = st.number_input("Valor da Viagem (R$)", min_value=0.0, step=10.0)
+        
         if st.form_submit_button("SALVAR REGISTRO"):
             if nome and repo:
-                nova_viagem = pd.DataFrame([[nome, motorista, data.strftime('%d/%m/%Y'), trajeto]], columns=df.columns)
+                nova_viagem = pd.DataFrame([[nome, motorista, data.strftime('%d/%m/%Y'), trajeto, valor]], columns=df.columns)
                 df_f = pd.concat([df, nova_viagem], ignore_index=True)
                 csv_data = df_f.to_csv(index=False)
                 if sha:
@@ -121,18 +105,23 @@ if menu == "📝 Programar Viagem":
 
 elif menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
-    # Tabela com fundo branco forçado e largura máxima
     st.dataframe(df, use_container_width=True)
 
-elif menu == "💰 Controle de Dados":
-    st.title("💰 Edição do Banco de Dados")
-    st.write("Ajuste as informações diretamente na planilha:")
-    # Editor de dados também com fundo branco
+elif menu == "💰 Financeiro":
+    st.title("💰 Controle Financeiro")
+    st.write("Ajuste valores, custos ou remova registros nesta planilha:")
+    
+    # Adicionei a coluna de Valor na criação do DF caso ela não exista
+    if "Valor (R$)" not in df.columns:
+        df["Valor (R$)"] = 0.0
+
     df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
-    if st.button("CONFIRMAR ALTERAÇÕES"):
-        if repo:
-            csv_editado = df_editado.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Edit", csv_editado, sha)
-            st.success("Dados sincronizados no GitHub!")
-            st.rerun()
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("CONFIRMAR ALTERAÇÕES"):
+            if repo:
+                csv_editado = df_editado.to_csv(index=False)
+                repo.update_file("dados_logistica.csv", "Edit Financeiro", csv_editado, sha)
+                st.success("Financeiro atualizado!")
+                st.rerun()
