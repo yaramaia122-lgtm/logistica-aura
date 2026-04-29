@@ -28,6 +28,7 @@ st.markdown("""
         padding: 20px 10px;
     }
     .logo-container img {
+        /* Drop-shadow para destacar a logo no fundo marinho */
         filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.8));
     }
 
@@ -35,16 +36,18 @@ st.markdown("""
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important;
-        color: #000000 !important;
+        color: #000000 !important; /* Letras pretas conforme solicitado */
         border-radius: 8px !important;
         height: 45px !important;
         font-weight: 500 !important;
     }
     
+    /* Forçar cor preta no texto digitado e nos itens selecionados */
     input, div[data-baseweb="select"] span {
         color: #000000 !important;
     }
 
+    /* Labels dos campos em Azul Marinho e Negrito */
     label, .stMarkdown p {
         color: #002D5E !important;
         font-weight: bold !important;
@@ -59,6 +62,7 @@ st.markdown("""
         font-weight: 700 !important;
         width: 100% !important;
         height: 50px !important;
+        transition: all 0.3s !important;
     }
     
     div.stButton > button:hover {
@@ -66,6 +70,7 @@ st.markdown("""
         color: #E1E8F0 !important;
     }
 
+    /* Tabelas sempre brancas */
     [data-testid="stDataFrame"], [data-testid="stTable"], .stDataEditor {
         background-color: #FFFFFF !important;
         border-radius: 10px !important;
@@ -73,6 +78,7 @@ st.markdown("""
     
     h1, h2, h3 { color: #002D5E !important; font-weight: 700 !important; }
     
+    /* Textos da Barra Lateral em Branco */
     [data-testid="stSidebar"] .stMarkdown p, [data-testid="stSidebar"] label {
         color: #FFFFFF !important;
     }
@@ -99,12 +105,13 @@ df, sha, repo = carregar_sistema()
 # 5. SIDEBAR / MENU
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
-    # Link direto para a logo.png no repositório
+    
+    # ESTRATÉGIA DE LOGO: Usando HTML para garantir a aplicação da sombra e carregamento
     logo_path = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
     
     st.markdown(f'''
         <div class="logo-container">
-            <img src="{logo_path}" width="220">
+            <img src="{logo_path}" width="220" onerror="this.style.display='none'">
         </div>
     ''', unsafe_allow_html=True)
     
@@ -116,6 +123,7 @@ with st.sidebar:
 if menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
     if not df.empty:
+        # Mostra apenas as informações logísticas
         st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário"]], use_container_width=True)
     else:
         st.info("Nenhum registro encontrado.")
@@ -141,7 +149,6 @@ elif menu == "📝 Programar Viagem":
         if trajeto == "Outro":
             obs_itinerario = st.text_input("Descreva o Itinerário / Observações")
         else:
-            # Campo oculto ou preenchido automaticamente para não quebrar a estrutura do CSV
             obs_itinerario = st.text_input("Observações Adicionais (Opcional)")
 
         if st.form_submit_button("SALVAR REGISTRO"):
@@ -158,7 +165,7 @@ elif menu == "📝 Programar Viagem":
                     repo.update_file("dados_logistica.csv", "Update", csv_data, sha)
                 else:
                     repo.create_file("dados_logistica.csv", "Init", csv_data)
-                st.success(f"Dados salvos!")
+                st.success(f"Dados salvos com sucesso!")
                 st.rerun()
 
 elif menu == "💰 Financeiro":
@@ -167,6 +174,7 @@ elif menu == "💰 Financeiro":
     
     if st.button("CONFIRMAR ALTERAÇÕES"):
         if repo:
+            # Recalcula o total caso valores tenham sido editados manualmente na tabela
             df_editado["Total (R$)"] = (df_editado["Hotel (R$)"] + 
                                        df_editado["Combustível (R$)"] + 
                                        df_editado["Aéreo (R$)"] + 
