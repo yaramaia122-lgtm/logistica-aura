@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from github import Github
 import io
+import os
 from datetime import datetime
 
 # 1. PREVENÇÃO CONTRA TRADUTOR E IDIOMA
@@ -10,7 +11,7 @@ st.markdown('<html lang="pt-br">', unsafe_allow_html=True)
 # 2. CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 3. UI/UX DESIGNER - ESTILO PADRONIZADO E CORREÇÃO VISUAL
+# 3. UI/UX DESIGNER - ESTILO PADRONIZADO (AZUL CLARO E LETRAS PRETAS)
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF; }
@@ -21,14 +22,14 @@ st.markdown("""
         min-width: 280px;
     }
     
-    /* DESTAQUE DA LOGO COM SOMBRA (RESOLVENDO ERRO DE CARREGAMENTO) */
-    .logo-container {
+    /* DESTAQUE DA LOGO COM SOMBRA */
+    .logo-shadow {
+        filter: drop-shadow(0px 6px 12px rgba(0,0,0,0.6));
         text-align: center;
         padding: 10px;
-        filter: drop-shadow(0px 6px 12px rgba(0,0,0,0.5));
     }
 
-    /* CAIXAS DE PREENCHIMENTO - AZUL CLARO E LETRAS PRETAS EM TODOS OS MÓDULOS */
+    /* CAIXAS DE PREENCHIMENTO - AZUL CLARO E LETRAS PRETAS */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input {
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important;
@@ -39,11 +40,11 @@ st.markdown("""
     }
     
     /* Forçar cor preta no texto digitado e nos itens selecionados */
-    input, div[data-baseweb="select"] span {
+    input, div[data-baseweb="select"] span, .stNumberInput div {
         color: #000000 !important;
     }
 
-    /* Labels dos campos em Azul Marinho e Negrito */
+    /* Labels (Descrições) dos campos em Azul Marinho e Negrito */
     label, .stMarkdown p {
         color: #002D5E !important;
         font-weight: bold !important;
@@ -58,7 +59,6 @@ st.markdown("""
         font-weight: 700 !important;
         width: 100% !important;
         height: 50px !important;
-        transition: all 0.3s !important;
     }
     
     div.stButton > button:hover {
@@ -66,7 +66,7 @@ st.markdown("""
         color: #E1E8F0 !important;
     }
 
-    /* Tabelas sempre brancas */
+    /* Tabelas Brancas */
     [data-testid="stDataFrame"], [data-testid="stTable"], .stDataEditor {
         background-color: #FFFFFF !important;
         border-radius: 10px !important;
@@ -102,15 +102,15 @@ df, sha, repo = carregar_sistema()
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Tentativa de carregamento robusto da logo
-    logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/Aura%20(Azul%20e%20Ocre)%20(1).png"
-    
-    # HTML robusto para a logo com sombra
-    st.markdown(f'''
-        <div class="logo-container">
-            <img src="{logo_url}" width="220" onerror="this.src='https://github.com/yaramaia122-lgtm/logistica-aura/raw/main/Aura%20(Azul%20e%20Ocre)%20(1).png'">
-        </div>
-    ''', unsafe_allow_html=True)
+    # Tentativa de carregar a logo.png localmente para evitar erros de link
+    if os.path.exists("logo.png"):
+        st.markdown('<div class="logo-shadow">', unsafe_allow_html=True)
+        st.image("logo.png", width=220)
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        # Link de reserva caso o arquivo local falhe
+        logo_url = "https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png"
+        st.markdown(f'<div class="logo-shadow"><img src="{logo_url}" width="220"></div>', unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     menu = st.radio("NAVEGAÇÃO:", ["📋 Agenda de Viagens", "📝 Programar Viagem", "💰 Financeiro"])
@@ -120,7 +120,7 @@ with st.sidebar:
 if menu == "📋 Agenda de Viagens":
     st.title("📋 Agenda de Viagens")
     if not df.empty:
-        # Exibe logística e a descrição de outros itinerários
+        # Agenda oculta o valor conforme solicitado
         st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs Itinerário"]], use_container_width=True)
     else:
         st.info("Nenhum registro encontrado.")
@@ -131,18 +131,18 @@ elif menu == "📝 Programar Viagem":
         c1, c2 = st.columns(2)
         with c1:
             nome = st.text_input("Nome do Passageiro").upper()
-            motorista = st.selectbox("Motorista Responsável", ["Ilson", "Antonio", "Outro"])
-            v_hotel = st.number_input("Custo Hotel (R$)", min_value=0.0, step=1.0)
-            v_aereo = st.number_input("Custo Passagem (R$)", min_value=0.0, step=1.0)
+            motorista = st.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
+            v_hotel = st.number_input("Valor Hotel (R$)", min_value=0.0, step=1.0)
+            v_aereo = st.number_input("Valor Aéreo (R$)", min_value=0.0, step=1.0)
         with c2:
-            data = st.date_input("Data Programada", datetime.now())
+            data = st.date_input("Data da Viagem", datetime.now())
             trajeto = st.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
-            v_comb = st.number_input("Custo Combustível (R$)", min_value=0.0, step=1.0)
+            v_comb = st.number_input("Valor Combustível (R$)", min_value=0.0, step=1.0)
             v_outros = st.number_input("Outros Custos (R$)", min_value=0.0, step=1.0)
         
-        obs_itinerario = st.text_input("Descrição de Outros / Observações do Trajeto")
+        obs_itinerario = st.text_input("Descrição de Outros / Observações do Itinerário")
         
-        if st.form_submit_button("CONCLUIR CADASTRO"):
+        if st.form_submit_button("SALVAR REGISTRO"):
             if nome and repo:
                 total_viagem = v_hotel + v_comb + v_aereo + v_outros
                 nova_viagem = pd.DataFrame([[
@@ -153,26 +153,25 @@ elif menu == "📝 Programar Viagem":
                 df_f = pd.concat([df, nova_viagem], ignore_index=True)
                 csv_data = df_f.to_csv(index=False)
                 if sha:
-                    repo.update_file("dados_logistica.csv", "Update Logistica", csv_data, sha)
+                    repo.update_file("dados_logistica.csv", "Registro", csv_data, sha)
                 else:
                     repo.create_file("dados_logistica.csv", "Início", csv_data)
-                st.success(f"Viagem de {nome} salva com sucesso!")
+                st.success(f"Logística registrada com sucesso!")
                 st.rerun()
 
 elif menu == "💰 Financeiro":
     st.title("💰 Financeiro")
-    st.markdown("### Controle de Custos Detalhado")
-    # Edição completa de todos os campos
+    st.markdown("### Controle Geral de Custos e Edição")
     df_editado = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
-    if st.button("CONFIRMAR ATUALIZAÇÃO FINANCEIRA"):
+    if st.button("CONFIRMAR ALTERAÇÕES"):
         if repo:
-            # Recalcula o total automático
+            # Recalcula o total automático se você mudar algum valor na tabela
             df_editado["Total (R$)"] = (df_editado["Hotel (R$)"] + 
                                        df_editado["Combustível (R$)"] + 
                                        df_editado["Aéreo (R$)"] + 
                                        df_editado["Outros (R$)"])
             csv_editado = df_editado.to_csv(index=False)
-            repo.update_file("dados_logistica.csv", "Sync Financeiro", csv_editado, sha)
-            st.success("Dados financeiros atualizados no servidor!")
+            repo.update_file("dados_logistica.csv", "Sincronização Financeira", csv_editado, sha)
+            st.success("Financeiro atualizado!")
             st.rerun()
