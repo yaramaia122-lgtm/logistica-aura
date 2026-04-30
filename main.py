@@ -7,56 +7,38 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - ESTILO ATUALIZADO (FOCO NA VISIBILIDADE DA TABELA)
+# 2. UI/UX - ESTILO CORRIGIDO (SEM BUG NA TABELA)
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
     
-    /* Títulos e Labels */
+    /* Títulos e Labels fora da tabela */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
     
-    /* Campos de Preenchimento */
+    /* Campos de Preenchimento: Azul Claro com letra Azul Escuro */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important; 
-        color: #002D5E !important; 
         border-radius: 8px !important; 
     }
     
-    /* Forçar letra Azul Escuro */
+    /* Letras Azul Escuro nos formulários */
     input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
     div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
     
     /* Botões */
-    div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 55px !important; }
-    
-    /* === TABELAS: Forçando Cores no Streamlit === */
-    /* Fundo Azul Claro */
-    [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
-        background-color: #F0F7FF !important;
+    div.stButton > button { 
+        background-color: #E1E8F0 !important; 
+        color: #002D5E !important; 
+        border: 2px solid #002D5E !important; 
+        font-weight: 800 !important; 
+        width: 100% !important; 
+        height: 55px !important; 
     }
     
-    /* Letras Azul Escuro nos cabeçalhos e células */
-    [data-testid="stDataFrame"] th, 
-    [data-testid="stDataFrame"] td,
-    [data-testid="stDataEditor"] th,
-    [data-testid="stDataEditor"] td,
-    .stDataFrame th, 
-    .stDataFrame td,
-    table th, 
-    table td {
-        color: #002D5E !important;
-    }
-    
-    /* Negrito apenas nos cabeçalhos */
-    [data-testid="stDataFrame"] th,
-    [data-testid="stDataEditor"] th,
-    .stDataFrame th,
-    table th {
-        font-weight: 800 !important;
-    }
+    /* REMOVIDO: O CSS bugado da tabela que fazia as letras sumirem foi totalmente apagado */
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,13 +68,13 @@ with st.sidebar:
 # 5. TELAS
 if menu == "Agenda":
     st.title("📋 Agenda de Viagens")
+    # A tabela agora vai renderizar nativamente, as letras vão aparecer!
     st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs"]], use_container_width=True)
 
 elif menu == "Programar Viagem":
     st.title("📝 Programar Viagem")
     
     form = st.form("meu_form", clear_on_submit=True)
-    
     col1, col2 = form.columns(2)
     
     nome = col1.text_input("Nome do Passageiro").upper()
@@ -106,7 +88,6 @@ elif menu == "Programar Viagem":
     v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
     
     obs = form.text_input("Observações Adicionais")
-    
     gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
     if gravar:
@@ -123,6 +104,7 @@ elif menu == "Programar Viagem":
 
 elif menu == "Financeiro":
     st.title("💰 Controle Financeiro")
+    # A tabela financeira também vai voltar ao normal
     df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
