@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - LETRAS EM AZUL ESCURO (#002D5E) E FUNDO AZUL CLARO
+# 2. UI/UX - ESTILO ATUALIZADO (FOCADO NAS DESCRIÇÕES DA TABELA)
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
@@ -17,7 +17,7 @@ st.markdown("""
     /* Títulos e Labels */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
     
-    /* Campos de Preenchimento: Fundo Azul Claro e Letra Azul Escuro */
+    /* Campos de Preenchimento */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important; 
@@ -25,20 +25,27 @@ st.markdown("""
         border-radius: 8px !important; 
     }
     
-    /* Forçar letra Azul Escuro no que é digitado */
+    /* Forçar letra Azul Escuro */
     input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
     div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
     
     /* Botões */
     div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 55px !important; }
     
-    /* === TABELAS: Fundo Azul Claro e Letra Azul Escuro === */
+    /* === TABELAS: Fundo Azul Claro e DESCRIÇÕES em Azul Escuro === */
     [data-testid="stDataFrame"] div, [data-testid="stDataEditor"] div, [data-testid="stDataFrame"] canvas { 
         background-color: #F0F7FF !important; 
-        color: #002D5E !important;
     }
     [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
         background-color: #F0F7FF !important;
+    }
+    
+    /* Atacando diretamente os cabeçalhos (descrições) e dados da tabela */
+    th, td, table {
+        color: #002D5E !important;
+    }
+    th {
+        font-weight: 800 !important; /* Deixa as descrições em negrito para destacar */
     }
 </style>
 """, unsafe_allow_html=True)
