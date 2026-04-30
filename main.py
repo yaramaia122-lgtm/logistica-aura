@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - CORES TRAVADAS (SEM TRANSPARÊNCIA)
+# 2. UI/UX - CORES TRAVADAS (AGORA INCLUINDO A TABELA EM AZUL CLARO)
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
@@ -18,6 +18,14 @@ st.markdown("""
     input { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
     div[data-baseweb="select"] span { color: #000000 !important; }
     div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 55px !important; }
+    
+    /* === NOVA REGRA: FORÇAR TABELAS PARA AZUL CLARO E LETRA PRETA === */
+    [data-testid="stDataFrame"] div, [data-testid="stDataEditor"] div, [data-testid="stDataFrame"] canvas { 
+        background-color: #F0F7FF !important; 
+    }
+    [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
+        background-color: #F0F7FF !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -52,27 +60,23 @@ if menu == "Agenda":
 elif menu == "Programar Viagem":
     st.title("📝 Programar Viagem")
     
-    # FORMULÁRIO (SINTAXE DIRETA PARA EVITAR ERRO DE INDENTAÇÃO)
+    # FORMULÁRIO (SINTAXE DIRETA INTACTA)
     form = st.form("meu_form", clear_on_submit=True)
     
     col1, col2 = form.columns(2)
     
-    # Preenchendo a Coluna 1
     nome = col1.text_input("Nome do Passageiro").upper()
     moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
     v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
     v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
     
-    # Preenchendo a Coluna 2
     data = col2.date_input("Data da Viagem", datetime.now())
     traj = col2.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
     v_c = col2.number_input("Custo Combustível (R$)", min_value=0.0)
     v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
     
-    # Campo abaixo das colunas
     obs = form.text_input("Observações Adicionais")
     
-    # Botão de Envio Obrigatório
     gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
     if gravar:
