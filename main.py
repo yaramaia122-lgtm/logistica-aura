@@ -7,7 +7,7 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - ESTILO ATUALIZADO (FOCADO NAS DESCRIÇÕES DA TABELA)
+# 2. UI/UX - ESTILO ATUALIZADO (FOCO NA VISIBILIDADE DA TABELA)
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
@@ -32,20 +32,30 @@ st.markdown("""
     /* Botões */
     div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 55px !important; }
     
-    /* === TABELAS: Fundo Azul Claro e DESCRIÇÕES em Azul Escuro === */
-    [data-testid="stDataFrame"] div, [data-testid="stDataEditor"] div, [data-testid="stDataFrame"] canvas { 
-        background-color: #F0F7FF !important; 
-    }
+    /* === TABELAS: Forçando Cores no Streamlit === */
+    /* Fundo Azul Claro */
     [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
         background-color: #F0F7FF !important;
     }
     
-    /* Atacando diretamente os cabeçalhos (descrições) e dados da tabela */
-    th, td, table {
+    /* Letras Azul Escuro nos cabeçalhos e células */
+    [data-testid="stDataFrame"] th, 
+    [data-testid="stDataFrame"] td,
+    [data-testid="stDataEditor"] th,
+    [data-testid="stDataEditor"] td,
+    .stDataFrame th, 
+    .stDataFrame td,
+    table th, 
+    table td {
         color: #002D5E !important;
     }
-    th {
-        font-weight: 800 !important; /* Deixa as descrições em negrito para destacar */
+    
+    /* Negrito apenas nos cabeçalhos */
+    [data-testid="stDataFrame"] th,
+    [data-testid="stDataEditor"] th,
+    .stDataFrame th,
+    table th {
+        font-weight: 800 !important;
     }
 </style>
 """, unsafe_allow_html=True)
