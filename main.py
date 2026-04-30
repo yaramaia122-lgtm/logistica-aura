@@ -7,21 +7,35 @@ from datetime import datetime
 # 1. CONFIGURAÇÃO
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - CORES TRAVADAS (AGORA INCLUINDO A TABELA EM AZUL CLARO)
+# 2. UI/UX - LETRAS EM AZUL ESCURO (#002D5E) E FUNDO AZUL CLARO
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
+    
+    /* Títulos e Labels */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { background-color: #F0F7FF !important; border: 2px solid #002D5E !important; color: #000000 !important; border-radius: 8px !important; }
-    input { color: #000000 !important; -webkit-text-fill-color: #000000 !important; }
-    div[data-baseweb="select"] span { color: #000000 !important; }
+    
+    /* Campos de Preenchimento: Fundo Azul Claro e Letra Azul Escuro */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
+        background-color: #F0F7FF !important; 
+        border: 2px solid #002D5E !important; 
+        color: #002D5E !important; 
+        border-radius: 8px !important; 
+    }
+    
+    /* Forçar letra Azul Escuro no que é digitado */
+    input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
+    div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
+    
+    /* Botões */
     div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 55px !important; }
     
-    /* === NOVA REGRA: FORÇAR TABELAS PARA AZUL CLARO E LETRA PRETA === */
+    /* === TABELAS: Fundo Azul Claro e Letra Azul Escuro === */
     [data-testid="stDataFrame"] div, [data-testid="stDataEditor"] div, [data-testid="stDataFrame"] canvas { 
         background-color: #F0F7FF !important; 
+        color: #002D5E !important;
     }
     [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
         background-color: #F0F7FF !important;
@@ -60,7 +74,6 @@ if menu == "Agenda":
 elif menu == "Programar Viagem":
     st.title("📝 Programar Viagem")
     
-    # FORMULÁRIO (SINTAXE DIRETA INTACTA)
     form = st.form("meu_form", clear_on_submit=True)
     
     col1, col2 = form.columns(2)
