@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 
 # ==========================================================
-# 1. FORÇAR TEMA CLARO (RESOLVE O PROBLEMA DAS TABELAS ESCURAS)
+# 1. FORÇAR TEMA CLARO
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -34,19 +34,29 @@ forcar_tema_claro()
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
 # ==========================================================
-# 3. UI/UX - ESTILO DEFINITIVO COM FOCO NAS DESCRIÇÕES DA TABELA
+# 3. UI/UX - ESTILO DEFINITIVO E BARRA LATERAL CORRIGIDA
 # ==========================================================
 st.markdown("""
 <style>
-    /* Fundo geral limpo */
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
     
-    /* Textos Gerais */
+    /* Textos Gerais no MEIO da tela (Azul Marinho) */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
     
-    /* Campos de Preenchimento: Azul Claro com letra Preta/Azul Escura */
+    /* ======== CORREÇÃO DA BARRA LATERAL ======== */
+    /* Força TUDO na barra lateral a ficar BRANCO */
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3, 
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] span {
+        color: #FFFFFF !important;
+    }
+
+    /* Campos de Preenchimento */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important; 
@@ -65,12 +75,8 @@ st.markdown("""
         height: 50px !important; 
     }
     
-    /* ==========================================================
-       NOVO: ESTILO EXCLUSIVO PARA DEIXAR A TABELA VISÍVEL E LINDA 
-       ========================================================== */
+    /* Tabela */
     table { width: 100%; border-collapse: collapse; }
-    
-    /* Cabeçalhos (Descrições) - Azul Marinho Forte e Fundo Claro */
     th { 
         background-color: #E1E8F0 !important; 
         color: #002D5E !important; 
@@ -80,8 +86,6 @@ st.markdown("""
         padding: 12px !important;
         text-align: left !important;
     }
-    
-    /* Células com as informações - Fundo Azul Gelo */
     td { 
         background-color: #F0F7FF !important;
         color: #000000 !important; 
@@ -125,7 +129,6 @@ with st.sidebar:
 if menu == "Agenda":
     st.title("📋 Agenda de Viagens")
     
-    # Substituí st.dataframe por st.table. Isso força o HTML a desenhar as cores perfeitas do CSS.
     if not df.empty:
         st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs"]])
     else:
@@ -137,6 +140,7 @@ elif menu == "Programar Viagem":
     form = st.form("meu_form", clear_on_submit=True)
     col1, col2 = form.columns(2)
     
+    # Este é o campo que causou o erro no seu print (precisa estar preenchido)
     nome = col1.text_input("Nome do Passageiro").upper()
     moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
     v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
@@ -151,7 +155,12 @@ elif menu == "Programar Viagem":
     gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
     if gravar:
-        if nome and repo:
+        # AVISOS DE ERRO SEPARADOS PARA NÃO TER MAIS DÚVIDA
+        if not nome:
+            st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
+        elif not repo:
+            st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token do GitHub).")
+        else:
             total = v_h + v_c + v_a + v_o
             nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
             df_final = pd.concat([df, nova_viagem], ignore_index=True)
@@ -159,13 +168,10 @@ elif menu == "Programar Viagem":
             repo.update_file("dados_logistica.csv", "Registro", df_final.to_csv(index=False), sha)
             st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
             st.rerun()
-        else:
-            st.error("Preencha o passageiro e verifique a conexão.")
 
 elif menu == "Financeiro":
     st.title("💰 Controle Financeiro")
     
-    st.info("💡 Como o Tema Claro foi ativado pelo código, esta tabela de edição também voltará a ficar com leitura fácil.")
     df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
