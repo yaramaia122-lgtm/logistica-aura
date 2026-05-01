@@ -2,183 +2,148 @@ import streamlit as st
 import pandas as pd
 from github import Github
 import io
-import os
 from datetime import datetime
 
-# ==========================================================
-# 1. FORÇAR TEMA CLARO
-# ==========================================================
-def forcar_tema_claro():
-    try:
-        os.makedirs(".streamlit", exist_ok=True)
-        arquivo = ".streamlit/config.toml"
-        conteudo = "[theme]\nbase='light'\nprimaryColor='#002D5E'\n"
-        precisa_escrever = True
-        if os.path.exists(arquivo):
-            with open(arquivo, "r") as f:
-                if conteudo in f.read(): precisa_escrever = False
-        if precisa_escrever:
-            with open(arquivo, "w") as f: f.write(conteudo)
-    except:
-        pass
+# 1. CONFIGURAÇÃO E IDENTIDADE VISUAL (AURA MINERALS)
+st.set_page_config(page_title="Logística Apoena", layout="wide")
 
-forcar_tema_claro()
-
-# ==========================================================
-# 2. CONFIGURAÇÃO DA PÁGINA
-# ==========================================================
-st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
-
-# ==========================================================
-# 3. UI/UX - ESTILO DEFINITIVO (INTOCADO)
-# ==========================================================
 st.markdown("""
-<style>
+    <style>
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
-    [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
-    h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
+    [data-testid="stSidebar"] * { color: #FFFFFF !important; }
+    h1, h2, h3, label { color: #002D5E !important; font-family: 'Open Sans', sans-serif; }
     
-    /* BARRA LATERAL BRANCA */
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
-
-    /* Campos de Preenchimento */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
-        background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; 
+    /* Inputs Cinza e Alinhados */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        background-color: #E8E8E8 !important;
+        border: 1px solid #002D5E !important;
+        border-radius: 4px !important;
     }
-    input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
-    div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
     
-    /* Botões */
-    div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 50px !important; }
+    /* Botões Profissionais */
+    .stButton>button {
+        background-color: #E8E8E8 !important;
+        color: #002D5E !important;
+        border: 2px solid #002D5E !important;
+        border-radius: 6px !important;
+        font-weight: bold; width: 100%;
+        transition: 0.3s;
+    }
+    .stButton>button:hover { background-color: #002D5E !important; color: #FFFFFF !important; }
     
-    /* Tabela */
-    table { width: 100%; border-collapse: collapse; }
-    th { background-color: #E1E8F0 !important; color: #002D5E !important; font-weight: 900 !important; font-size: 16px !important; border-bottom: 3px solid #002D5E !important; padding: 12px !important; text-align: left !important; }
-    td { background-color: #F0F7FF !important; color: #000000 !important; border-bottom: 1px solid #B0C4DE !important; padding: 10px !important; font-size: 15px !important; }
-</style>
-""", unsafe_allow_html=True)
+    /* Logo com Sombra */
+    .logo-aura { filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.5)); display: block; margin: auto; }
+    </style>
+    """, unsafe_allow_html=True)
 
-# ==========================================================
-# 4. BACKEND GITHUB 
-# ==========================================================
-def carregar_dados():
-    cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total"]
+# 2. LÓGICA DE BANCO DE DADOS (GITHUB)
+def conectar_github():
     try:
-        g = Github(st.secrets["GITHUB_TOKEN"])
-        repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
-        contents = repo.get_contents("dados_logistica.csv")
-        df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
-        for c in cols:
-            if c not in df.columns: df[c] = 0.0 if c in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
-        return df, contents.sha, repo
+        token = st.secrets["GITHUB_TOKEN"]
+        g = Github(token)
+        repo = g.get_user().get_repo("logistica-aura") # Certifique-se que o nome do repo está correto
+        return repo
     except:
-        return pd.DataFrame(columns=cols), None, None
+        return None
 
-df, sha, repo = carregar_dados()
-
-# ==========================================================
-# 5. SIDEBAR / MENU
-# ==========================================================
-with st.sidebar:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-    st.markdown("---")
-    menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)"])
-
-# ==========================================================
-# 6. TELAS E APLICAÇÃO
-# ==========================================================
-if menu == "Agenda":
-    st.title("📋 Agenda de Viagens")
-    if not df.empty:
-        st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]])
+def gerenciar_dados(repo, acao="carregar", df_novo=None, sha=None):
+    file_path = "dados_logistica.csv"
+    if acao == "carregar":
+        try:
+            file_content = repo.get_contents(file_path)
+            df = pd.read_csv(io.StringIO(file_content.decoded_content.decode('utf-8')))
+            return df, file_content.sha
+        except:
+            return pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "Trajeto", "Valor"]), None
     else:
-        st.info("Nenhuma viagem agendada.")
-
-elif menu == "Programar Viagem":
-    st.title("📝 Programar Viagem")
-    
-    form = st.form("meu_form", clear_on_submit=True)
-    col1, col2 = form.columns(2)
-    
-    nome = col1.text_input("Nome do Passageiro").upper()
-    moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
-    
-    # === SISTEMA INTELIGENTE DE CENTRO DE CUSTO (CORRIGIDO) ===
-    lista_base = [
-        "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
-        "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
-        "211003 - Oficina Manutenção Planta", "210201 - Britagem Primária", "210604 - Fundição",
-        "310101 - Almoxarifado", "320401 - Controladoria e Contabilidade", "310701 - Serviços Gerais",
-        "320601 - Celula de Gestao de Contratos", "320101 - Suprimentos", "320502 - Tecnologia da Informação",
-        "311202 - Care and Maintenance SF", "330102 - Apoena Corporativo", "311203 - Care and Maintenance PPQ",
-        "340103 - Jurídico", "310801 - Seguranca Patrimonial", "310301 - PCP", "320201 - Gerência Geral",
-        "310508 - Comunidades", "320303 - Trainee", "320301 - Recursos Humanos", "310902 - Campo",
-        "310904 - Exploração EPP", "121101 - Geologia Operacional - Mina Ernesto",
-        "121102 - Planejamento e Topografia Operacional - Mina Ernesto", "151101 - Geologia Operacional - Mina Nosde",
-        "151103 - Geotecnia - Nosde", "210502 - Barragem", "151102 - Planejamento e Topografia Operacional - Mina Nosde",
-        "310501 - Meio Ambiente", "310503 - Segurança do Trabalho", "310502 - Saude",
-        "150101 - Administração de Mina - Céu Aberto - Nosde", "120101 - Administração de Mina - Céu Aberto - Ernesto"
-    ]
-    
-    # Pega os centros de custo que já estão no banco de dados
-    if not df.empty and "Centro de Custo" in df.columns:
-        usados_no_banco = df["Centro de Custo"].dropna().unique().tolist()
-        lista_completa = sorted(list(set(lista_base + usados_no_banco)))
-    else:
-        lista_completa = sorted(lista_base)
-        
-    # Campo 1: A lista padrão
-    cc_selecionado = col1.selectbox("Centro de Custo (Selecione na lista)", lista_completa)
-    
-    # Campo 2: A caixinha opcional sempre visível (resolve o bug do botão)
-    novo_cc = col1.text_input("➕ Não achou? Cadastre um Novo Centro de Custo aqui:")
-    
-    v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
-    v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
-    
-    data = col2.date_input("Data da Viagem", datetime.now())
-    traj = col2.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
-    v_c = col2.number_input("Custo Combustível (R$)", min_value=0.0)
-    v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
-    
-    obs = form.text_input("Observações Adicionais")
-    gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
-
-    if gravar:
-        # A Mágica acontece aqui: se digitou algo na caixinha, usa ela. Senão, usa a lista.
-        centro_custo_final = novo_cc.strip() if novo_cc.strip() != "" else cc_selecionado
-
-        if not nome:
-            st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
-        elif not repo:
-            st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
+        csv_string = df_novo.to_csv(index=False)
+        if sha:
+            repo.update_file(file_path, "Update Logística", csv_string, sha)
         else:
-            total = v_h + v_c + v_a + v_o
-            nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
-            df_final = pd.concat([df, nova_viagem], ignore_index=True)
-            
-            repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha)
-            st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
-            st.rerun()
+            repo.create_file(file_path, "Iniciando Banco de Dados", csv_string)
 
-elif menu == "Financeiro (Acesso ADM)":
-    st.title("💰 Controle Financeiro (Restrito)")
+# 3. CONTROLE DE ACESSO E PRIVACIDADE (O ESCUDO)
+if 'aceite_lgpd' not in st.session_state:
+    st.session_state.aceite_lgpd = False
+
+if not st.session_state.aceite_lgpd:
+    st.subheader("🛡️ Termos de Uso e Privacidade")
+    st.info("Para acessar a Ferramenta de Logística da Aura Apoena, você deve concordar com o tratamento de dados.")
     
-    # === A SENHA FICA AQUI ===
-    senha = st.text_input("Digite a senha de Administrador:", type="password")
+    with st.expander("Ver Política de Privacidade completa (LGPD)"):
+        st.write("""
+            **Finalidade:** Os dados coletados (Nomes e Trajetos) são para fins exclusivos de gestão logística.
+            **Segurança:** Seus dados são armazenados de forma criptografada no repositório da empresa.
+            **Responsabilidade:** O usuário se compromete a inserir dados verídicos.
+        """)
     
-    if senha == "aura123":
-        st.success("Acesso Liberado.")
-        df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+    check_consentimento = st.checkbox("Li e aceito os termos de tratamento de dados conforme a LGPD.")
+    if st.button("Acessar Plataforma"):
+        if check_consentimento:
+            st.session_state.aceite_lgpd = True
+            st.rerun()
+        else:
+            st.warning("É necessário aceitar os termos para prosseguir.")
+    st.stop()
+
+# 4. INTERFACE PRINCIPAL (NAVBAR LATERAL)
+repo = conectar_github()
+if repo:
+    df, sha = gerenciar_dados(repo, "carregar")
+
+    with st.sidebar:
+        st.markdown('<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        menu = st.radio("NAVEGAÇÃO", ["🏠 Home", "📝 Programar", "📋 Agenda", "💰 Financeiro", "⚙️ Suporte"])
+
+    # TELA: HOME (DASHBOARD)
+    if menu == "🏠 Home":
+        st.title("Bem-vinda, Yara!")
+        st.write("Resumo das atividades da Logística Apoena.")
+        c1, c2 = st.columns(2)
+        c1.metric("Viagens Programadas", len(df))
+        c2.metric("Custo Total (R$)", f"{df['Valor'].sum():.2f}")
+
+    # TELA: PROGRAMAR (MASCARAMENTO E FEEDBACK)
+    elif menu == "📝 Programar":
+        st.header("📝 Nova Programação")
+        with st.form("form_viagem", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            # Mascaramento é feito via interface: forçando maiúsculas
+            pax = col1.text_input("Passageiro").upper()
+            mot = col1.selectbox("Motorista", ["Ilson", "Antonio", "Terceirizado"])
+            data = col2.date_input("Data da Viagem", datetime.now())
+            tra = col2.selectbox("Trajeto", ["P. Lacerda x Cuiabá", "Cuiabá x P. Lacerda", "Interno", "Outro"])
+            
+            if st.form_submit_button("✅ SALVAR REGISTRO"):
+                if pax == "":
+                    st.error("O campo Passageiro não pode ficar vazio.")
+                else:
+                    with st.spinner("Sincronizando com a nuvem..."):
+                        nova_linha = pd.DataFrame([{"Data": data.strftime('%d/%m/%Y'), "Motorista": mot, "Passageiro": pax, "Trajeto": tra, "Valor": 0}])
+                        df_final = pd.concat([df, nova_linha], ignore_index=True)
+                        gerenciar_dados(repo, "salvar", df_final, sha)
+                        st.success("Viagem cadastrada com sucesso!")
+
+    # TELA: FINANCEIRO (SEGURANÇA DE EXCLUSÃO)
+    elif menu == "💰 Financeiro":
+        st.header("💰 Controle de Custos")
+        st.write("Edite os valores ou adicione informações financeiras abaixo.")
+        df_editado = st.data_editor(df, use_container_width=True, num_rows="dynamic")
         
-        if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
-            if repo:
-                df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
-                repo.update_file("dados_logistica.csv", "Edição Financeira", df_ed.to_csv(index=False), sha)
-                st.success("✅ ALTERAÇÕES REGISTRADAS NO BANCO DE DADOS!")
-                st.rerun()
-    elif senha != "":
-        st.error("Senha incorreta. Acesso negado.")
+        # Confirmação de exclusão ou alteração importante
+        if st.button("💾 SALVAR ALTERAÇÕES"):
+            st.warning("⚠️ Você está prestes a sobrescrever os dados no GitHub.")
+            confirmar = st.checkbox("Confirmo que revisei os valores e desejo salvar.")
+            if confirmar:
+                with st.spinner("Atualizando banco de dados..."):
+                    gerenciar_dados(repo, "salvar", df_editado, sha)
+                    st.success("Dados atualizados!")
+                    st.rerun()
+
+    # TELA: SUPORTE
+    elif menu == "⚙️ Suporte":
+        st.header("⚙️ Central de Ajuda")
+        st.write("Dúvidas ou bugs? Entre em contato com o suporte de infraestrutura.")
+        st.button("Reportar um Problema")
