@@ -106,50 +106,39 @@ elif menu == "Programar Viagem":
     nome = col1.text_input("Nome do Passageiro").upper()
     moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
     
-    # === LISTA REAL DE CENTRO DE CUSTOS DA IMAGEM ===
-    lista_cc = [
-        "210301 - Moagem",
-        "210403 - Detox",
-        "210801 - Laboratório",
-        "211002 - Manutenção Mecânica Planta",
-        "210405 - Lixiviação / Cianetação",
-        "210101 - Administração Planta",
-        "211001 - Manutencao Eletrica Planta",
-        "211003 - Oficina Manutenção Planta",
-        "210201 - Britagem Primária",
-        "210604 - Fundição",
-        "310101 - Almoxarifado",
-        "320401 - Controladoria e Contabilidade",
-        "310701 - Serviços Gerais",
-        "320601 - Celula de Gestao de Contratos",
-        "320101 - Suprimentos",
-        "320502 - Tecnologia da Informação",
-        "311202 - Care and Maintenance SF",
-        "330102 - Apoena Corporativo",
-        "311203 - Care and Maintenance PPQ",
-        "340103 - Jurídico",
-        "310801 - Seguranca Patrimonial",
-        "310301 - PCP",
-        "320201 - Gerência Geral",
-        "310508 - Comunidades",
-        "320303 - Trainee",
-        "320301 - Recursos Humanos",
-        "310902 - Campo",
-        "310904 - Exploração EPP",
-        "121101 - Geologia Operacional - Mina Ernesto",
-        "121102 - Planejamento e Topografia Operacional - Mina Ernesto",
-        "151101 - Geologia Operacional - Mina Nosde",
-        "151103 - Geotecnia - Nosde",
-        "210502 - Barragem",
-        "151102 - Planejamento e Topografia Operacional - Mina Nosde",
-        "310501 - Meio Ambiente",
-        "310503 - Segurança do Trabalho",
-        "310502 - Saude",
-        "150101 - Administração de Mina - Céu Aberto - Nosde",
-        "120101 - Administração de Mina - Céu Aberto - Ernesto"
+    # === SISTEMA INTELIGENTE DE CENTRO DE CUSTO ===
+    lista_base = [
+        "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
+        "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
+        "211003 - Oficina Manutenção Planta", "210201 - Britagem Primária", "210604 - Fundição",
+        "310101 - Almoxarifado", "320401 - Controladoria e Contabilidade", "310701 - Serviços Gerais",
+        "320601 - Celula de Gestao de Contratos", "320101 - Suprimentos", "320502 - Tecnologia da Informação",
+        "311202 - Care and Maintenance SF", "330102 - Apoena Corporativo", "311203 - Care and Maintenance PPQ",
+        "340103 - Jurídico", "310801 - Seguranca Patrimonial", "310301 - PCP", "320201 - Gerência Geral",
+        "310508 - Comunidades", "320303 - Trainee", "320301 - Recursos Humanos", "310902 - Campo",
+        "310904 - Exploração EPP", "121101 - Geologia Operacional - Mina Ernesto",
+        "121102 - Planejamento e Topografia Operacional - Mina Ernesto", "151101 - Geologia Operacional - Mina Nosde",
+        "151103 - Geotecnia - Nosde", "210502 - Barragem", "151102 - Planejamento e Topografia Operacional - Mina Nosde",
+        "310501 - Meio Ambiente", "310503 - Segurança do Trabalho", "310502 - Saude",
+        "150101 - Administração de Mina - Céu Aberto - Nosde", "120101 - Administração de Mina - Céu Aberto - Ernesto"
     ]
     
-    centro_custo = col1.selectbox("Centro de Custo", lista_cc)
+    # Pega os centros de custo que já estão no banco de dados e junta com a lista base
+    if not df.empty and "Centro de Custo" in df.columns:
+        usados_no_banco = df["Centro de Custo"].dropna().unique().tolist()
+        lista_completa = sorted(list(set(lista_base + usados_no_banco)))
+    else:
+        lista_completa = sorted(lista_base)
+        
+    lista_completa.append("➕ CADASTRAR NOVO CENTRO DE CUSTO")
+    
+    cc_selecionado = col1.selectbox("Centro de Custo", lista_completa)
+    
+    # Se o usuário escolher cadastrar novo, abre um campo para ele digitar
+    if cc_selecionado == "➕ CADASTRAR NOVO CENTRO DE CUSTO":
+        centro_custo = col1.text_input("Digite o código e nome do Novo Centro de Custo:")
+    else:
+        centro_custo = cc_selecionado
     
     v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
     v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
@@ -165,6 +154,8 @@ elif menu == "Programar Viagem":
     if gravar:
         if not nome:
             st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
+        elif cc_selecionado == "➕ CADASTRAR NOVO CENTRO DE CUSTO" and not centro_custo:
+            st.warning("⚠️ ERRO: Você esqueceu de digitar o nome do Novo Centro de Custo.")
         elif not repo:
             st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
         else:
@@ -172,14 +163,14 @@ elif menu == "Programar Viagem":
             nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
             df_final = pd.concat([df, nova_viagem], ignore_index=True)
             
-            repo.update_file("dados_logistica.csv", "Registro com Centro de Custo", df_final.to_csv(index=False), sha)
+            repo.update_file("dados_logistica.csv", "Registro com Novo Centro de Custo", df_final.to_csv(index=False), sha)
             st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
             st.rerun()
 
 elif menu == "Financeiro (Acesso ADM)":
     st.title("💰 Controle Financeiro (Restrito)")
     
-    # A senha atual é "aura123".
+    # === A SENHA FICA AQUI ===
     senha = st.text_input("Digite a senha de Administrador:", type="password")
     
     if senha == "aura123":
