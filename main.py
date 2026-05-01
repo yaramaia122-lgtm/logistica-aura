@@ -2,29 +2,56 @@ import streamlit as st
 import pandas as pd
 from github import Github
 import io
+import os
 from datetime import datetime
 
-# 1. CONFIGURAÇÃO
+# ==========================================================
+# 1. FORÇAR TEMA CLARO (RESOLVE O PROBLEMA DAS TABELAS ESCURAS)
+# ==========================================================
+def forcar_tema_claro():
+    try:
+        os.makedirs(".streamlit", exist_ok=True)
+        arquivo = ".streamlit/config.toml"
+        conteudo = "[theme]\nbase='light'\nprimaryColor='#002D5E'\n"
+        
+        precisa_escrever = True
+        if os.path.exists(arquivo):
+            with open(arquivo, "r") as f:
+                if conteudo in f.read():
+                    precisa_escrever = False
+                    
+        if precisa_escrever:
+            with open(arquivo, "w") as f:
+                f.write(conteudo)
+    except:
+        pass
+
+forcar_tema_claro()
+
+# ==========================================================
+# 2. CONFIGURAÇÃO DA PÁGINA
+# ==========================================================
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
-# 2. UI/UX - ESTILO CORRIGIDO (SEM BUG NA TABELA)
+# ==========================================================
+# 3. UI/UX - ESTILO DEFINITIVO COM FOCO NAS DESCRIÇÕES DA TABELA
+# ==========================================================
 st.markdown("""
 <style>
+    /* Fundo geral limpo */
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
     
-    /* Títulos e Labels fora da tabela */
+    /* Textos Gerais */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
     
-    /* Campos de Preenchimento: Azul Claro com letra Azul Escuro */
+    /* Campos de Preenchimento: Azul Claro com letra Preta/Azul Escura */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; 
         border: 2px solid #002D5E !important; 
-        border-radius: 8px !important; 
+        border-radius: 6px !important; 
     }
-    
-    /* Letras Azul Escuro nos formulários */
     input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
     div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
     
@@ -35,14 +62,39 @@ st.markdown("""
         border: 2px solid #002D5E !important; 
         font-weight: 800 !important; 
         width: 100% !important; 
-        height: 55px !important; 
+        height: 50px !important; 
     }
     
-    /* REMOVIDO: O CSS bugado da tabela que fazia as letras sumirem foi totalmente apagado */
+    /* ==========================================================
+       NOVO: ESTILO EXCLUSIVO PARA DEIXAR A TABELA VISÍVEL E LINDA 
+       ========================================================== */
+    table { width: 100%; border-collapse: collapse; }
+    
+    /* Cabeçalhos (Descrições) - Azul Marinho Forte e Fundo Claro */
+    th { 
+        background-color: #E1E8F0 !important; 
+        color: #002D5E !important; 
+        font-weight: 900 !important; 
+        font-size: 16px !important;
+        border-bottom: 3px solid #002D5E !important;
+        padding: 12px !important;
+        text-align: left !important;
+    }
+    
+    /* Células com as informações - Fundo Azul Gelo */
+    td { 
+        background-color: #F0F7FF !important;
+        color: #000000 !important; 
+        border-bottom: 1px solid #B0C4DE !important;
+        padding: 10px !important;
+        font-size: 15px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# 3. BACKEND GITHUB
+# ==========================================================
+# 4. BACKEND GITHUB
+# ==========================================================
 def carregar_dados():
     cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total"]
     try:
@@ -58,18 +110,26 @@ def carregar_dados():
 
 df, sha, repo = carregar_dados()
 
-# 4. SIDEBAR
+# ==========================================================
+# 5. SIDEBAR / MENU
+# ==========================================================
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
     st.markdown("---")
     menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro"])
 
-# 5. TELAS
+# ==========================================================
+# 6. TELAS E APLICAÇÃO
+# ==========================================================
 if menu == "Agenda":
     st.title("📋 Agenda de Viagens")
-    # A tabela agora vai renderizar nativamente, as letras vão aparecer!
-    st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs"]], use_container_width=True)
+    
+    # Substituí st.dataframe por st.table. Isso força o HTML a desenhar as cores perfeitas do CSS.
+    if not df.empty:
+        st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Obs"]])
+    else:
+        st.info("Nenhuma viagem agendada.")
 
 elif menu == "Programar Viagem":
     st.title("📝 Programar Viagem")
@@ -104,7 +164,8 @@ elif menu == "Programar Viagem":
 
 elif menu == "Financeiro":
     st.title("💰 Controle Financeiro")
-    # A tabela financeira também vai voltar ao normal
+    
+    st.info("💡 Como o Tema Claro foi ativado pelo código, esta tabela de edição também voltará a ficar com leitura fácil.")
     df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
     
     if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
