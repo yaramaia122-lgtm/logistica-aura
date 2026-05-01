@@ -106,7 +106,7 @@ elif menu == "Programar Viagem":
     nome = col1.text_input("Nome do Passageiro").upper()
     moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
     
-    # === SISTEMA INTELIGENTE DE CENTRO DE CUSTO ===
+    # === SISTEMA INTELIGENTE DE CENTRO DE CUSTO (CORRIGIDO) ===
     lista_base = [
         "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
         "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
@@ -123,22 +123,18 @@ elif menu == "Programar Viagem":
         "150101 - Administração de Mina - Céu Aberto - Nosde", "120101 - Administração de Mina - Céu Aberto - Ernesto"
     ]
     
-    # Pega os centros de custo que já estão no banco de dados e junta com a lista base
+    # Pega os centros de custo que já estão no banco de dados
     if not df.empty and "Centro de Custo" in df.columns:
         usados_no_banco = df["Centro de Custo"].dropna().unique().tolist()
         lista_completa = sorted(list(set(lista_base + usados_no_banco)))
     else:
         lista_completa = sorted(lista_base)
         
-    lista_completa.append("➕ CADASTRAR NOVO CENTRO DE CUSTO")
+    # Campo 1: A lista padrão
+    cc_selecionado = col1.selectbox("Centro de Custo (Selecione na lista)", lista_completa)
     
-    cc_selecionado = col1.selectbox("Centro de Custo", lista_completa)
-    
-    # Se o usuário escolher cadastrar novo, abre um campo para ele digitar
-    if cc_selecionado == "➕ CADASTRAR NOVO CENTRO DE CUSTO":
-        centro_custo = col1.text_input("Digite o código e nome do Novo Centro de Custo:")
-    else:
-        centro_custo = cc_selecionado
+    # Campo 2: A caixinha opcional sempre visível (resolve o bug do botão)
+    novo_cc = col1.text_input("➕ Não achou? Cadastre um Novo Centro de Custo aqui:")
     
     v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
     v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
@@ -152,18 +148,19 @@ elif menu == "Programar Viagem":
     gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
     if gravar:
+        # A Mágica acontece aqui: se digitou algo na caixinha, usa ela. Senão, usa a lista.
+        centro_custo_final = novo_cc.strip() if novo_cc.strip() != "" else cc_selecionado
+
         if not nome:
             st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
-        elif cc_selecionado == "➕ CADASTRAR NOVO CENTRO DE CUSTO" and not centro_custo:
-            st.warning("⚠️ ERRO: Você esqueceu de digitar o nome do Novo Centro de Custo.")
         elif not repo:
             st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
         else:
             total = v_h + v_c + v_a + v_o
-            nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
+            nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
             df_final = pd.concat([df, nova_viagem], ignore_index=True)
             
-            repo.update_file("dados_logistica.csv", "Registro com Novo Centro de Custo", df_final.to_csv(index=False), sha)
+            repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha)
             st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
             st.rerun()
 
