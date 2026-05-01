@@ -4,15 +4,17 @@ from github import Github
 import io
 from datetime import datetime
 
-# 1. CONFIGURAÇÃO DE PÁGINA E ESTILO AURA
-st.set_page_config(page_title="Logística Apoena", layout="wide")
+# 1. IDENTIDADE VISUAL AURA (MODERNA E PROFISSIONAL)
+st.set_page_config(page_title="Logística Aura", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     [data-testid="stSidebar"] * { color: #FFFFFF !important; }
-    h1, h2, h3, label { color: #002D5E !important; font-family: 'Open Sans', sans-serif; }
+    h1, h2, h3, label { color: #002D5E !important; font-family: 'Segoe UI', sans-serif; }
+    
+    /* Campos de entrada e botões em Cinza e Azul */
     div[data-baseweb="input"], div[data-baseweb="select"] {
         background-color: #E8E8E8 !important;
         border: 1px solid #002D5E !important;
@@ -22,7 +24,6 @@ st.markdown("""
         background-color: #E8E8E8 !important;
         color: #002D5E !important;
         border: 2px solid #002D5E !important;
-        border-radius: 6px !important;
         font-weight: bold; width: 100%;
     }
     .stButton>button:hover { background-color: #002D5E !important; color: #FFFFFF !important; }
@@ -30,111 +31,94 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. FUNÇÕES DE DADOS (COM TRATAMENTO DE ERRO PARA EVITAR TELA BRANCA)
+# 2. CONEXÃO COM O REPOSITÓRIO ESPECÍFICO
 def conectar_github():
     try:
-        # Tenta buscar o token nos Secrets
         if "GITHUB_TOKEN" not in st.secrets:
-            st.error("❌ Erro Crítico: 'GITHUB_TOKEN' não encontrado nos Secrets do Streamlit.")
+            st.error("❌ Erro: 'GITHUB_TOKEN' não configurado nos Secrets.")
             return None
         
-        token = st.secrets["GITHUB_TOKEN"]
-        g = Github(token)
-        # IMPORTANTE: Verifique se o nome do repositório abaixo está correto no seu GitHub
-        repo = g.get_user().get_repo("logistica-aura") 
+        g = Github(st.secrets["GITHUB_TOKEN"])
+        # Usando o caminho completo do repositório informado
+        repo = g.get_repo("yaramaia122-lgtm/logistica-aura") 
         return repo
     except Exception as e:
-        st.error(f"❌ Falha ao conectar ao GitHub: {e}")
+        st.error(f"❌ Erro de conexão: {e}")
         return None
 
 def gerenciar_dados(repo, acao="carregar", df_novo=None, sha=None):
-    file_path = "dados_logistica.csv"
+    path = "dados_logistica.csv"
     try:
         if acao == "carregar":
             try:
-                file_content = repo.get_contents(file_path)
-                df = pd.read_csv(io.StringIO(file_content.decoded_content.decode('utf-8')))
-                return df, file_content.sha
+                content = repo.get_contents(path)
+                return pd.read_csv(io.StringIO(content.decoded_content.decode('utf-8'))), content.sha
             except:
-                # Se o arquivo não existir, retorna um DataFrame vazio estruturado
                 return pd.DataFrame(columns=["Data", "Motorista", "Passageiro", "Trajeto", "Valor"]), None
         else:
-            csv_string = df_novo.to_csv(index=False)
+            csv_data = df_novo.to_csv(index=False)
             if sha:
-                repo.update_file(file_path, "Update Logística", csv_string, sha)
+                repo.update_file(path, "Sync Logística", csv_data, sha)
             else:
-                repo.create_file(file_path, "Iniciando Banco de Dados", csv_string)
+                repo.create_file(path, "Init DB", csv_data)
             return True
     except Exception as e:
-        st.error(f"⚠️ Erro ao processar dados: {e}")
+        st.error(f"⚠️ Erro nos dados: {e}")
         return None, None
 
-# 3. LÓGICA DE CONSENTIMENTO (LGPD)
-if 'aceite_lgpd' not in st.session_state:
-    st.session_state.aceite_lgpd = False
+# 3. ESCUDO JURÍDICO E LGPD
+if 'lgpd' not in st.session_state:
+    st.session_state.lgpd = False
 
-if not st.session_state.aceite_lgpd:
+if not st.session_state.lgpd:
     st.markdown('<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
-    st.subheader("🛡️ Termos de Privacidade e Uso")
-    st.info("Para prosseguir, aceite os termos de uso de dados da Aura Apoena.")
-    
-    with st.expander("Leia a Política de Privacidade (LGPD)"):
-        st.write("Os dados coletados são usados exclusivamente para fins de logística interna.")
-    
-    concordo = st.checkbox("Eu concordo com o tratamento dos dados conforme a política descrita.")
-    if st.button("Acessar Sistema"):
-        if concordo:
-            st.session_state.aceite_lgpd = True
+    st.subheader("🛡️ Termos de Privacidade Aura Apoena")
+    st.info("O acesso requer a aceitação do tratamento de dados para fins logísticos.")
+    if st.checkbox("Aceito os termos da LGPD e Política de Privacidade."):
+        if st.button("Entrar no Sistema"):
+            st.session_state.lgpd = True
             st.rerun()
-        else:
-            st.warning("Você precisa marcar a caixa de seleção para continuar.")
     st.stop()
 
-# 4. APLICAÇÃO PRINCIPAL (SÓ EXECUTA APÓS O ACEITE)
+# 4. APLICAÇÃO PRINCIPAL
 repo = conectar_github()
-
-if repo is not None:
+if repo:
     df, sha = gerenciar_dados(repo, "carregar")
-    
-    with st.sidebar:
-        st.markdown('<div style="text-align: center;"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        menu = st.radio("NAVEGAÇÃO", ["🏠 Home", "📝 Programar", "📋 Agenda", "💰 Financeiro"])
 
-    if menu == "🏠 Home":
-        st.title("Bem-vinda, Yara!")
+    with st.sidebar:
+        st.markdown('<div class="logo-container"><img src="https://gist.githubusercontent.com/user-attachments/assets/8e0f5228-40b9-4674-9f0f-6df3d57b280c" width="180" class="logo-aura"></div>', unsafe_allow_html=True)
+        menu = st.radio("NAVEGAÇÃO", ["🏠 Dashboard", "📝 Programar", "📋 Agenda", "💰 Financeiro"])
+
+    if menu == "🏠 Dashboard":
+        st.title("Logística Aura Minerals")
+        st.write("Visão geral estratégica de pessoas e frotas.") # Alinhado ao foco em Gestão de Pessoas
         c1, c2 = st.columns(2)
-        c1.metric("Viagens Registradas", len(df))
-        c2.metric("Custo Total (R$)", f"{pd.to_numeric(df['Valor'], errors='coerce').sum():.2f}")
+        c1.metric("Total de Viagens", len(df))
+        c2.metric("Custo Acumulado", f"R$ {pd.to_numeric(df['Valor'], errors='coerce').sum():.2f}")
 
     elif menu == "📝 Programar":
         st.header("📝 Nova Programação")
-        with st.form("nova_v", clear_on_submit=True):
+        with st.form("add_viagem", clear_on_submit=True):
             pax = st.text_input("Passageiro").upper()
             mot = st.selectbox("Motorista", ["Ilson", "Antonio", "Outro"])
             tra = st.selectbox("Trajeto", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
             if st.form_submit_button("✅ SALVAR"):
                 if pax:
                     nova = pd.DataFrame([{"Data": datetime.now().strftime('%d/%m/%Y'), "Motorista": mot, "Passageiro": pax, "Trajeto": tra, "Valor": 0}])
-                    df_final = pd.concat([df, nova], ignore_index=True)
-                    gerenciar_dados(repo, "salvar", df_final, sha)
-                    st.success("Dados enviados ao GitHub!")
+                    df_res = pd.concat([df, nova], ignore_index=True)
+                    gerenciar_dados(repo, "salvar", df_res, sha)
+                    st.success("Registrado no GitHub!")
                     st.rerun()
-                else:
-                    st.error("Preencha o nome do passageiro.")
 
     elif menu == "💰 Financeiro":
-        st.header("💰 Gestão Financeira")
-        df_editado = st.data_editor(df, use_container_width=True, num_rows="dynamic")
-        if st.button("💾 SALVAR ALTERAÇÕES"):
-            if st.checkbox("Confirmo a atualização dos dados"):
-                gerenciar_dados(repo, "salvar", df_editado, sha)
-                st.success("Planilha atualizada!")
+        st.header("💰 Controle de Custos")
+        df_edit = st.data_editor(df, use_container_width=True, num_rows="dynamic")
+        if st.button("💾 ATUALIZAR PLANILHA"):
+            if st.checkbox("Confirmar alterações"):
+                gerenciar_dados(repo, "salvar", df_edit, sha)
+                st.success("Dados atualizados!")
                 st.rerun()
 
     elif menu == "📋 Agenda":
         st.header("📋 Agenda de Viagens")
         st.dataframe(df, use_container_width=True)
-else:
-    # Se o repo for None, esta mensagem impede a tela branca
-    st.warning("⚠️ O sistema não pôde carregar o menu porque a conexão com o GitHub falhou. Verifique seu Token nos Secrets.")
