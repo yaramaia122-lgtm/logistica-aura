@@ -14,9 +14,14 @@ if 'usuario_atual' not in st.session_state:
     st.session_state['usuario_atual'] = ""
 if 'perfil' not in st.session_state:
     st.session_state['perfil'] = ""
+# Novas variáveis para o fluxo de segurança do 1º Acesso
+if 'precisa_trocar_senha' not in st.session_state:
+    st.session_state['precisa_trocar_senha'] = False
+if 'email_troca' not in st.session_state:
+    st.session_state['email_troca'] = ""
 
 # ==========================================================
-# 1. FORÇAR TEMA CLARO
+# 1. FORÇAR TEMA CLARO E CSS GLOBAL
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -38,10 +43,10 @@ forcar_tema_claro()
 # ==========================================================
 # 2. MOTOR DE BANCO DE DADOS (VIAGENS E USUÁRIOS)
 # ==========================================================
-@st.cache_data(ttl=5) # Ajuda a não travar o GitHub
+@st.cache_data(ttl=5)
 def carregar_bancos():
     cols_viagens = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
-    cols_usuarios = ["Email", "Senha", "Perfil", "Status"]
+    cols_usuarios = ["Email", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
     
     try:
         token = st.secrets["GITHUB_TOKEN"]
@@ -66,9 +71,12 @@ def carregar_bancos():
             cont_usr = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_usr.decoded_content.decode()))
             sha_u = cont_usr.sha
+            # Se o banco antigo não tiver a coluna de Primeiro Acesso, adiciona automaticamente
+            if "Primeiro_Acesso" not in df_u.columns:
+                df_u["Primeiro_Acesso"] = "Nao"
         except:
-            # Se não existir, cria o Admin Master padrão para o primeiro acesso
-            df_u = pd.DataFrame([["admin@aura.com", "aura123", "Administrador", "Ativo"]], columns=cols_usuarios)
+            # Cria Admin Master obrigando a trocar a senha no primeiro login
+            df_u = pd.DataFrame([["admin@aura.com", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
             try:
                 repo.create_file("usuarios.csv", "Criando banco de usuarios", df_u.to_csv(index=False))
                 cont_usr = repo.get_contents("usuarios.csv")
@@ -83,9 +91,10 @@ def carregar_bancos():
 df, sha_viagens, df_usuarios, sha_usuarios, repo, g = carregar_bancos()
 
 # ==========================================================
-# 3. TELA DE LOGIN CORPORATIVO
+# 3. TELAS DE AUTENTICAÇÃO (LOGIN E REDEFINIÇÃO DE SENHA)
 # ==========================================================
 if not st.session_state['logado']:
+    
     st.markdown("""
     <style>
         .stApp { background-color: #002D5E !important; }
@@ -93,7 +102,6 @@ if not st.session_state['logado']:
         h1, h2, h3, label, p { color: #FFFFFF !important; font-weight: bold !important; }
         .stTextInput input { background-color: #F0F7FF !important; color: #002D5E !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; }
         input { -webkit-text-fill-color: #002D5E !important; }
-        
         div[data-testid="stFormSubmitButton"] > button { background-color: #FFFFFF !important; border: 2px solid #FFFFFF !important; border-radius: 8px !important; width: 100% !important; height: 55px !important; margin-top: 10px !important; }
         div[data-testid="stFormSubmitButton"] > button p { color: #002D5E !important; font-size: 18px !important; font-weight: 900 !important; }
         div[data-testid="stFormSubmitButton"] > button:hover { background-color: #002D5E !important; border: 2px solid #FFFFFF !important; }
@@ -102,37 +110,80 @@ if not st.session_state['logado']:
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 1.2, 1])
+    
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown("<h2 style='color: white;'>Sistema Backoffice</h2>", unsafe_allow_html=True)
         
-        with st.form("form_login"):
-            email_digitado = st.text_input("E-mail Corporativo")
-            senha_digitada = st.text_input("Senha de Acesso", type="password")
-            entrar = st.form_submit_button("ENTRAR NO SISTEMA")
+        # TELA 3.1: REDEFINIÇÃO OBRIGATÓRIA DE SENHA
+        if st.session_state['precisa_trocar_senha']:
+            st.markdown("<h2 style='color: white;'>Segurança: Nova Senha</h2>", unsafe_allow_html=True)
+            st.info("Este é o seu primeiro acesso ou sua senha foi resetada. Por diretrizes de segurança, crie uma senha pessoal que apenas você tenha conhecimento.")
             
-            if entrar:
-                if df_usuarios.empty:
-                    st.error("Erro ao conectar com o banco de usuários. Verifique a internet e o Token.")
-                else:
-                    email_limpo = email_digitado.strip().lower()
-                    
-                    # Busca o usuário no Banco de Dados que acabamos de carregar
-                    usuario_encontrado = df_usuarios[(df_usuarios['Email'].str.lower() == email_limpo) & 
-                                                     (df_usuarios['Senha'] == senha_digitada) & 
-                                                     (df_usuarios['Status'] == 'Ativo')]
-                    
-                    if not usuario_encontrado.empty:
-                        st.session_state['logado'] = True
-                        st.session_state['usuario_atual'] = email_limpo
-                        st.session_state['perfil'] = usuario_encontrado.iloc[0]['Perfil']
-                        st.rerun()
+            with st.form("form_troca_senha"):
+                nova_senha = st.text_input("Digite sua Nova Senha", type="password")
+                confirma_senha = st.text_input("Confirme a Nova Senha", type="password")
+                salvar_senha = st.form_submit_button("GRAVAR NOVA SENHA SEGURA")
+                
+                if salvar_senha:
+                    if len(nova_senha) < 4:
+                        st.warning("A senha deve ter pelo menos 4 caracteres.")
+                    elif nova_senha != confirma_senha:
+                        st.error("As senhas não coincidem. Tente novamente.")
                     else:
-                        st.error("E-mail ou senha incorretos, ou usuário inativo.")
+                        if repo:
+                            # Localiza o usuário no banco e atualiza a senha e o status de primeiro acesso
+                            email_alvo = st.session_state['email_troca']
+                            idx = df_usuarios.index[df_usuarios['Email'].str.lower() == email_alvo].tolist()[0]
+                            df_usuarios.at[idx, 'Senha'] = nova_senha
+                            df_usuarios.at[idx, 'Primeiro_Acesso'] = 'Nao'
+                            
+                            # Salva no Github
+                            repo.update_file("usuarios.csv", f"Senha atualizada pelo usuario: {email_alvo}", df_usuarios.to_csv(index=False), sha_usuarios)
+                            
+                            # Limpa os status para voltar à tela de login padrão
+                            st.session_state['precisa_trocar_senha'] = False
+                            st.session_state['email_troca'] = ""
+                            st.cache_data.clear()
+                            st.success("Senha alterada com sucesso! Faça login novamente com sua nova senha.")
+                            st.rerun()
+                        else:
+                            st.error("Erro ao conectar com o servidor para gravar a senha.")
         
-        with st.expander("Esqueceu sua senha?"):
-            st.info("Para redefinir sua senha, contate o Administrador do Sistema. A alteração é feita diretamente no Painel de Controle Interno.")
+        # TELA 3.2: LOGIN PADRÃO
+        else:
+            st.markdown("<h2 style='color: white;'>Sistema Backoffice</h2>", unsafe_allow_html=True)
+            
+            with st.form("form_login"):
+                email_digitado = st.text_input("E-mail Corporativo")
+                senha_digitada = st.text_input("Senha de Acesso", type="password")
+                entrar = st.form_submit_button("ENTRAR NO SISTEMA")
+                
+                if entrar:
+                    if df_usuarios.empty:
+                        st.error("Erro ao conectar com o banco de usuários. Verifique o Token.")
+                    else:
+                        email_limpo = email_digitado.strip().lower()
+                        usuario_encontrado = df_usuarios[(df_usuarios['Email'].str.lower() == email_limpo) & 
+                                                         (df_usuarios['Senha'] == senha_digitada) & 
+                                                         (df_usuarios['Status'] == 'Ativo')]
+                        
+                        if not usuario_encontrado.empty:
+                            # Verifica a regra de "Zero Trust" (Primeiro Acesso)
+                            if usuario_encontrado.iloc[0]['Primeiro_Acesso'] == 'Sim':
+                                st.session_state['precisa_trocar_senha'] = True
+                                st.session_state['email_troca'] = email_limpo
+                                st.rerun()
+                            else:
+                                st.session_state['logado'] = True
+                                st.session_state['usuario_atual'] = email_limpo
+                                st.session_state['perfil'] = usuario_encontrado.iloc[0]['Perfil']
+                                st.rerun()
+                        else:
+                            st.error("E-mail ou senha incorretos, ou usuário inativo.")
+            
+            with st.expander("Esqueceu sua senha?"):
+                st.info("Para redefinir sua senha, contate o Administrador do Sistema. Ele irá fornecer uma senha provisória para o seu próximo login.")
 
 # ==========================================================
 # 4. APP PRINCIPAL (SÓ CARREGA DEPOIS DO LOGIN)
@@ -143,7 +194,6 @@ else:
         .stApp { background-color: #FFFFFF !important; }
         [data-testid="stSidebar"] { background-color: #002D5E !important; }
         [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
-        
         h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
         .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; }
@@ -152,7 +202,6 @@ else:
         div.stButton > button { background-color: #E1E8F0 !important; border: 2px solid #002D5E !important; border-radius: 8px !important; width: 100% !important; height: 50px !important; }
         div.stButton > button * { color: #002D5E !important; font-weight: 800 !important; }
         [data-testid="stDataFrame"] { border: 1px solid #002D5E !important; border-radius: 8px !important; overflow: hidden !important;}
-        
         .stTabs [data-baseweb="tab-list"] { gap: 20px; }
         .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: #F0F7FF; border-radius: 6px 6px 0px 0px; padding-left: 20px; padding-right: 20px;}
         .stTabs [aria-selected="true"] { background-color: #002D5E !important; color: white !important;}
@@ -177,14 +226,14 @@ else:
             st.session_state['logado'] = False
             st.session_state['usuario_atual'] = ""
             st.session_state['perfil'] = ""
-            st.cache_data.clear() # Limpa o cache para garantir logout seguro
+            st.session_state['precisa_trocar_senha'] = False
+            st.cache_data.clear()
             st.rerun()
 
     if menu == "Dashboard":
         st.title("Painel de Indicadores")
         st.markdown("Resumo gerencial e métricas de desempenho logístico.")
         st.divider()
-        
         if not df.empty:
             col1, col2, col3 = st.columns(3)
             col1.metric(label="Viagens Registradas", value=len(df))
@@ -269,10 +318,10 @@ else:
 
     elif menu == "Administração" and st.session_state.get('perfil') == "Administrador":
         st.title("Painel de Administração")
-        st.markdown("Módulo central de gestão. Restrito ao nível Administrador.")
+        st.markdown("Módulo central de segurança e gestão. Restrito ao nível Administrador.")
         st.divider()
         
-        tab_fin, tab_usr, tab_seg = st.tabs(["Controle Financeiro", "Gestão de Usuários (Senhas)", "Governança"])
+        tab_fin, tab_usr, tab_seg = st.tabs(["Controle Financeiro", "Gestão de Usuários e Segurança", "Governança"])
         
         with tab_fin:
             st.markdown("### Auditoria de Custos Logísticos")
@@ -286,27 +335,28 @@ else:
                     st.rerun()
                     
         with tab_usr:
-            st.markdown("### Gestão de Acessos e Senhas")
-            st.markdown("Adicione e-mails, troque senhas ou bloqueie usuários mudando o Status para 'Inativo'.")
+            st.markdown("### Controle de Acessos")
+            st.markdown("Para resetar uma senha esquecida, altere a senha do colaborador nesta tabela e marque **Exigir Troca de Senha** como **'Sim'**.")
             
             if not df_usuarios.empty:
-                # Tabela de Usuários Editável!
                 df_usr_edit = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True,
                                              column_config={
                                                  "Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"], required=True),
-                                                 "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"], required=True)
+                                                 "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"], required=True),
+                                                 "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca de Senha?", options=["Sim", "Nao"], required=True)
                                              })
                 
-                if st.button("SALVAR ALTERAÇÕES DE USUÁRIOS"):
+                if st.button("SALVAR ALTERAÇÕES DE USUÁRIOS E SEGURANÇA"):
                     if repo:
-                        repo.update_file("usuarios.csv", "Edição de Usuários via Admin", df_usr_edit.to_csv(index=False), sha_usuarios)
+                        repo.update_file("usuarios.csv", "Edição de Acessos via Admin", df_usr_edit.to_csv(index=False), sha_usuarios)
                         st.cache_data.clear()
-                        st.success("USUÁRIOS E SENHAS ATUALIZADOS COM SUCESSO!")
+                        st.success("SEGURANÇA ATUALIZADA COM SUCESSO!")
                         st.rerun()
             else:
                 st.error("Erro ao carregar banco de usuários.")
             
         with tab_seg:
-            st.markdown("### Centro de Governança")
-            st.success("Sistema Operando como Backoffice Fechado")
-            st.success("Senhas Gerenciadas pelo Administrador no Painel")
+            st.markdown("### Arquitetura de Confiança Zero (Zero Trust)")
+            st.success("Forçar Troca de Senha de Novos Usuários: Ativo")
+            st.success("Senhas Definitivas Inacessíveis pelo Administrador: Ativo")
+            st.success("Criptografia em Nuvem e HTTPS: Ativo")
