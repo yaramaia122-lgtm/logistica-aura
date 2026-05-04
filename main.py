@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (PADRÃO DE BOTÕES: BRANCO COM LETRA AZUL)
+# 1. TEMA E CSS (BLOQUEIO DE CORES - PADRÃO YARA)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -42,38 +42,42 @@ st.markdown("""
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     
+    /* Títulos e Textos */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
+    /* Campos de Entrada */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- CONFIGURAÇÃO DOS BOTÕES --- */
-    /* 1. BOTÃO EM REPOUSO (FUNDO BRANCO / LETRA AZUL) */
+    /* --- CORREÇÃO DEFINITIVA DOS BOTÕES --- */
+    /* Estilo do botão em si */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
-        color: #002D5E !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
-        font-weight: 900 !important;
         width: 100% !important;
         height: 50px !important;
         text-transform: uppercase;
+        transition: 0.3s;
     }
     
-    /* GARANTIA DA COR DA LETRA AZUL NO FUNDO BRANCO */
+    /* TEXTO DO BOTÃO (O QUE ESTAVA FICANDO BRANCO) */
     div.stButton > button p {
         color: #002D5E !important;
+        font-weight: 900 !important;
+        font-size: 16px !important;
+        margin: 0px !important;
     }
 
-    /* 2. BOTÃO COM A SETA EM CIMA (FUNDO AZUL / LETRA BRANCA) */
+    /* QUANDO PASSA O MOUSE (HOVER) */
     div.stButton > button:hover {
         background-color: #002D5E !important;
-        color: #FFFFFF !important;
         border: 2px solid #002D5E !important;
     }
     
+    /* TEXTO DO BOTÃO NO HOVER (FICA BRANCO NO FUNDO AZUL) */
     div.stButton > button:hover p {
         color: #FFFFFF !important;
     }
@@ -154,7 +158,7 @@ if not st.session_state['logado']:
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Dados de acesso incorretos.")
+                    else: st.error("Erro de acesso.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
