@@ -52,7 +52,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 2. MOTOR DE BANCO DE DADOS (GERENCIAMENTO DE ARQUIVOS)
+# 2. MOTOR DE BANCO DE DADOS
 # ==========================================================
 @st.cache_data(ttl=5)
 def carregar_bancos():
@@ -65,7 +65,6 @@ def carregar_bancos():
         g = Github(auth=auth)
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
         
-        # --- CARREGAR VIAGENS ---
         try:
             cont_v = repo.get_contents("dados_logistica.csv")
             df_v = pd.read_csv(io.StringIO(cont_v.decoded_content.decode()))
@@ -75,25 +74,19 @@ def carregar_bancos():
         except:
             df_v = pd.DataFrame(columns=cols_v); sha_v = None
 
-        # --- CARREGAR USUÁRIOS (RECUPERAÇÃO DE ACESSO) ---
         try:
             cont_u = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_u.decoded_content.decode()))
             sha_u = cont_u.sha
-            # Migração de colunas Email -> Usuario
-            if "Email" in df_u.columns: df_u.rename(columns={"Email": "Usuario"}, inplace=True)
-            # Garantir Yara mestre
             if "yara.chaves" not in df_u["Usuario"].values:
-                nova = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)
-                df_u = pd.concat([df_u, nova], ignore_index=True)
-                repo.update_file("usuarios.csv", "Fix Yara", df_u.to_csv(index=False), sha_u)
+                df_u = pd.concat([df_u, pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)], ignore_index=True)
+                repo.update_file("usuarios.csv", "Fix", df_u.to_csv(index=False), sha_u)
                 sha_u = repo.get_contents("usuarios.csv").sha
         except:
             df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)
-            repo.create_file("usuarios.csv", "Init Usr", df_u.to_csv(index=False))
+            repo.create_file("usuarios.csv", "Init", df_u.to_csv(index=False))
             sha_u = repo.get_contents("usuarios.csv").sha
 
-        # --- CARREGAR OBSERVAÇÕES ---
         try:
             cont_o = repo.get_contents("observacoes.csv")
             df_o = pd.read_csv(io.StringIO(cont_o.decoded_content.decode()))
@@ -107,7 +100,7 @@ def carregar_bancos():
 df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_bancos()
 
 # ==========================================================
-# 3. AUTENTICAÇÃO (LOGIN)
+# 3. TELAS DE LOGIN
 # ==========================================================
 if not st.session_state['logado']:
     st.markdown("""<style>.stApp { background-color: #002D5E !important; } h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
@@ -117,32 +110,30 @@ if not st.session_state['logado']:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
         
         if st.session_state['precisa_trocar_senha']:
-            with st.form("f_pwd"):
-                n_s = st.text_input("Nova Senha", type="password")
-                c_s = st.text_input("Confirme Senha", type="password")
-                if st.form_submit_button("SALVAR SENHA"):
-                    if n_s == c_s:
+            with st.form("f_p"):
+                n = st.text_input("Nova Senha", type="password")
+                c = st.text_input("Confirme", type="password")
+                if st.form_submit_button("SALVAR"):
+                    if n == c:
                         idx = df_usuarios.index[df_usuarios['Usuario'] == st.session_state['usuario_troca']].tolist()[0]
-                        df_usuarios.at[idx, 'Senha'] = n_s
-                        df_usuarios.at[idx, 'Primeiro_Acesso'] = 'Nao'
-                        repo.update_file("usuarios.csv", "Pwd Change", df_usuarios.to_csv(index=False), sha_usuarios)
+                        df_usuarios.at[idx, 'Senha'], df_usuarios.at[idx, 'Primeiro_Acesso'] = n, 'Nao'
+                        repo.update_file("usuarios.csv", "Pwd", df_usuarios.to_csv(index=False), sha_usuarios)
                         st.session_state['precisa_trocar_senha'] = False
-                        st.success("Pronto! Faça login novamente.")
                         st.rerun()
         else:
-            with st.form("f_log"):
-                u = st.text_input("Usuário Corporativo (yara.chaves)")
+            with st.form("f_l"):
+                u = st.text_input("Usuário Corporativo")
                 s = st.text_input("Senha", type="password")
                 if st.form_submit_button("ENTRAR"):
-                    u_db = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
-                    if not u_db.empty:
-                        if u_db.iloc[0]['Primeiro_Acesso'] == 'Sim':
+                    udb = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
+                    if not udb.empty:
+                        if udb.iloc[0]['Primeiro_Acesso'] == 'Sim':
                             st.session_state['precisa_trocar_senha'], st.session_state['usuario_troca'] = True, u
                             st.rerun()
                         else:
-                            st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, u_db.iloc[0]['Perfil']
+                            st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Incorreto.")
+                    else: st.error("Acesso negado.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
@@ -151,14 +142,32 @@ else:
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
         st.write(f"Logado: **{st.session_state['usuario_atual']}**")
-        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Administração"])
+        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
         if st.button("Sair"): st.session_state['logado'] = False; st.rerun()
 
-    if menu == "Agenda":
+    if menu == "Dashboard":
+        st.title("Painel de Indicadores")
+        st.divider()
+        if not df.empty:
+            df_ativas = df[df["Status"] != "Cancelada"].copy()
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Viagens Ativas", len(df_ativas))
+            c2.metric("Custo Global", f"R$ {df_ativas['Total'].sum():,.2f}")
+            c3.metric("Cancelamentos", len(df[df["Status"] == "Cancelada"]))
+            st.markdown("<br>", unsafe_allow_html=True)
+            col_g1, col_g2 = st.columns(2)
+            with col_g1:
+                st.markdown("#### Custos por Centro de Custo")
+                st.bar_chart(df_ativas.groupby("Centro de Custo")["Total"].sum().sort_values(ascending=False))
+            with col_g2:
+                st.markdown("#### Destinos Mais Frequentes")
+                st.bar_chart(df_ativas["Trajeto"].value_counts())
+        else: st.info("Sem dados para o dashboard.")
+
+    elif menu == "Agenda":
         st.title("Agenda Logística")
         d_sel = st.date_input("Semana:", datetime.now().date())
-        ini = d_sel - timedelta(days=d_sel.weekday())
-        fim = ini + timedelta(days=6)
+        ini = d_sel - timedelta(days=d_sel.weekday()); fim = ini + timedelta(days=6)
         
         if not df.empty:
             df['D_Obj'] = pd.to_datetime(df['Data'], format='%d/%m/%Y', errors='coerce').dt.date
@@ -170,16 +179,14 @@ else:
         st.markdown("<div class='obs-header'>Observações Semanais</div>", unsafe_allow_html=True)
         obs_l = []
         for i in range(7):
-            dt = ini + timedelta(days=i)
-            ch = dt.strftime('%d/%m/%Y')
+            dt = ini + timedelta(days=i); ch = dt.strftime('%d/%m/%Y')
             tx = df_obs[df_obs['Data'] == ch]['Observacao'].values[0] if ch in df_obs['Data'].values else ""
             obs_l.append({"Dia": DIAS_SEMANA_PT[i], "Data": f"{dt.day}/{MESES_PT[dt.month]}", "Chave": ch, "Observação": tx})
-        
         ed_obs = st.data_editor(pd.DataFrame(obs_l), use_container_width=True, hide_index=True, column_config={"Chave": None})
         if st.button("Salvar Observações"):
             new_o = pd.DataFrame([{"Data": r['Chave'], "Observacao": r['Observação']} for _, r in ed_obs.iterrows()])
             repo.update_file("observacoes.csv", "Upd", new_o.to_csv(index=False), sha_obs)
-            st.cache_data.clear(); st.success("Salvo!"); st.rerun()
+            st.cache_data.clear(); st.rerun()
 
     elif menu == "Programar Viagem":
         st.title("Nova Programação")
@@ -189,58 +196,34 @@ else:
             mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
             tj = c1.selectbox("Trecho", ["Pontes e Lacerda x Cuiabá", "Cuiabá x Pontes e Lacerda", "Interno", "Outro"])
             cc = c1.text_input("Centro de Custo")
-            
-            dt = c2.date_input("Data")
-            hs = c2.text_input("Saída")
-            lh = c2.text_input("Hotel/Destino")
-            
+            dt = c2.date_input("Data"); hs = c2.text_input("Saída"); lh = c2.text_input("Hotel/Destino")
             st.markdown("---")
-            vn = st.text_input("Cia/Voo")
-            vh = st.text_input("Hora Voo")
-            vd = st.date_input("Data Voo", value=dt)
-            
+            vn = st.text_input("Cia/Voo"); vh = st.text_input("Hora Voo"); vd = st.date_input("Data Voo", value=dt)
             st.markdown("---")
-            vh_v = st.number_input("Custo Hotel (R$)")
-            va_v = st.number_input("Custo Aéreo (R$)")
-            vc_v = st.number_input("Custo Combustível (R$)")
-            vo_v = st.number_input("Outros (R$)")
-            
+            vh_v = st.number_input("Hotel (R$)"); va_v = st.number_input("Aéreo (R$)"); vc_v = st.number_input("Combustível (R$)"); vo_v = st.number_input("Outros (R$)")
             if st.form_submit_button("GRAVAR"):
-                sem = DIAS_SEMANA_PT[dt.weekday()]
-                tot = vh_v + va_v + vc_v + vo_v
-                nova = {
-                    "Passageiro": px, "Motorista": mt, "Data": dt.strftime('%d/%m/%Y'),
-                    "Semana": sem, "Hora_Saida": hs, "Trajeto": tj,
-                    "Voo_Cia_Num": vn, "Hora_Voo": vh, "Data_Voo": vd.strftime('%d/%m/%Y'),
-                    "Local_Hotel": lh, "Centro de Custo": cc, "Status": "Confirmada",
-                    "Hotel_Valor": vh_v, "Aereo_Valor": va_v, "Combustivel_Valor": vc_v, 
-                    "Outros_Valor": vo_v, "Total": tot, "Usuario_Criador": st.session_state['usuario_atual']
-                }
-                df_f = pd.concat([df, pd.DataFrame([nova])], ignore_index=True)
+                sem = DIAS_SEMANA_PT[dt.weekday()]; tot = vh_v + va_v + vc_v + vo_v
+                nova = pd.DataFrame([{
+                    "Passageiro": px, "Motorista": mt, "Data": dt.strftime('%d/%m/%Y'), "Semana": sem, "Hora_Saida": hs, "Trajeto": tj,
+                    "Voo_Cia_Num": vn, "Hora_Voo": vh, "Data_Voo": vd.strftime('%d/%m/%Y'), "Local_Hotel": lh, "Centro de Custo": cc, "Status": "Confirmada",
+                    "Hotel_Valor": vh_v, "Aereo_Valor": va_v, "Combustivel_Valor": vc_v, "Outros_Valor": vo_v, "Total": tot, "Usuario_Criador": st.session_state['usuario_atual']
+                }])
+                df_f = pd.concat([df, nova], ignore_index=True)
                 repo.update_file("dados_logistica.csv", "Add", df_f.to_csv(index=False), sha_viagens)
-                st.cache_data.clear(); st.success("Gravado!"); st.rerun()
+                st.cache_data.clear(); st.rerun()
 
     elif menu == "Administração":
-        st.title("Painel de Administração")
-        tab1, tab2 = st.tabs(["Auditoria de Viagens", "Gestão de Usuários"])
-        
-        with tab1:
-            st.markdown("### Controle Financeiro e Status")
-            df_ed = st.data_editor(df, use_container_width=True, hide_index=True, 
-                                   column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"])})
+        st.title("Painel Administrativo")
+        t1, t2 = st.tabs(["Auditoria de Viagens", "Gestão de Usuários"])
+        with t1:
+            df_ed = st.data_editor(df, use_container_width=True, hide_index=True, column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"])})
             if st.button("Salvar Viagens"):
                 df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel_Valor"] + df_ed["Outros_Valor"]
-                repo.update_file("dados_logistica.csv", "Adm Edit", df_ed.to_csv(index=False), sha_viagens)
-                st.cache_data.clear(); st.success("Banco de Viagens Atualizado!"); st.rerun()
-                
-        with tab2:
-            st.markdown("### Gestão de Acessos e Senhas")
-            df_u_ed = st.data_editor(df_usuarios, use_container_width=True, hide_index=True,
-                                     column_config={
-                                         "Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]),
-                                         "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]),
-                                         "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])
-                                     })
+                repo.update_file("dados_logistica.csv", "V_Edit", df_ed.to_csv(index=False), sha_viagens)
+                st.cache_data.clear(); st.rerun()
+        with t2:
+            df_u_ed = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True,
+                                     column_config={"Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]), "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]), "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])})
             if st.button("Salvar Usuários"):
-                repo.update_file("usuarios.csv", "Usr Edit", df_u_ed.to_csv(index=False), sha_usuarios)
-                st.cache_data.clear(); st.success("Banco de Usuários Atualizado!"); st.rerun()
+                repo.update_file("usuarios.csv", "U_Edit", df_u_ed.to_csv(index=False), sha_usuarios)
+                st.cache_data.clear(); st.rerun()
