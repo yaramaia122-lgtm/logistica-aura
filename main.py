@@ -59,20 +59,24 @@ if not st.session_state['logado']:
         }
         input { -webkit-text-fill-color: #002D5E !important; }
         
-        /* Botão de Entrar */
+        /* Botão de Entrar Corrigido (Blindado contra bugs do Streamlit) */
         div.stButton > button { 
-            background-color: #FFFFFF !important; 
+            background-color: #E1E8F0 !important; 
             color: #002D5E !important; 
-            border: none !important; 
+            border: 2px solid #FFFFFF !important; 
             border-radius: 8px !important;
             font-weight: 900 !important; 
             width: 100% !important; 
             height: 55px !important; 
+        }
+        div.stButton > button p {
+            color: #002D5E !important;
             font-size: 18px !important;
+            font-weight: 900 !important;
         }
         div.stButton > button:hover {
-            background-color: #E1E8F0 !important;
-            color: #000000 !important;
+            background-color: #FFFFFF !important;
+            border-color: #add8e6 !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -80,8 +84,9 @@ if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", use_container_width=True)
-        st.markdown("<h2 style='text-align: center; color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
+        # --- LOGO REDUZIDA AQUI ---
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
+        st.markdown("<h2 style='color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
         
         with st.form("form_login"):
             usuario_digitado = st.text_input("Usuário Corporativo")
@@ -133,6 +138,7 @@ else:
         
         /* Botões do App */
         div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 50px !important; }
+        div.stButton > button p { color: #002D5E !important; }
         
         /* Tabelas */
         table { width: 100%; border-collapse: collapse; }
