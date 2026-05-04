@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (CORREÇÃO AGRESSIVA DOS BOTÕES)
+# 1. TEMA E CSS (REVISÃO TOTAL DE CORES E BOTÕES)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -51,35 +51,36 @@ st.markdown("""
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- CORREÇÃO DEFINITIVA DOS BOTÕES (ESTADO NORMAL) --- */
+    /* --- BLOCO DE SEGURANÇA PARA BOTÕES (PADRÃO YARA) --- */
+    /* 1. O Botão em si */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
-        color: #002D5E !important; /* Texto em Azul Marinho FORÇADO */
-        font-weight: 900 !important;
         width: 100% !important;
         height: 50px !important;
         text-transform: uppercase;
+        transition: 0.2s;
     }
     
-    /* Forçar a cor do texto do botão mesmo que o sistema tente mudar */
-    div.stButton > button p {
+    /* 2. O Texto dentro do botão (Aqui é onde corrigimos a leitura) */
+    div.stButton > button div p {
         color: #002D5E !important;
         font-weight: 900 !important;
+        font-size: 16px !important;
     }
 
-    /* --- ESTADO QUANDO O MOUSE ESTÁ EM CIMA (HOVER) --- */
+    /* 3. Efeito quando passa o mouse (Hover) */
     div.stButton > button:hover {
         background-color: #002D5E !important;
         border: 2px solid #002D5E !important;
     }
     
-    div.stButton > button:hover p {
-        color: #FFFFFF !important; /* Texto fica Branco no fundo Azul */
+    div.stButton > button:hover div p {
+        color: #FFFFFF !important; /* Texto fica branco apenas no fundo azul */
     }
     
-    /* Cabeçalho de Observações */
+    /* Estilo Especial para a Tabela de Observações */
     .obs-header { background-color: #E75945 !important; color: white !important; text-align: center !important; padding: 10px !important; font-weight: bold !important; border-radius: 8px 8px 0px 0px; margin-bottom: -15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -131,6 +132,7 @@ df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_ban
 # 3. TELAS DE ACESSO (LOGIN)
 # ==========================================================
 if not st.session_state['logado']:
+    # Cor de fundo azul marinho na tela de login
     st.markdown("""<style>.stApp { background-color: #002D5E !important; } h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
@@ -161,7 +163,7 @@ if not st.session_state['logado']:
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Erro de autenticação.")
+                    else: st.error("Usuário ou senha incorretos.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
@@ -180,7 +182,7 @@ else:
             df_ativas = df[df["Status"] != "Cancelada"].copy()
             c1, c2, c3 = st.columns(3)
             c1.metric("Viagens Ativas", len(df_ativas))
-            c2.metric("Custo Global", f"R$ {df_ativas['Total'].sum():,.2f}")
+            c2.metric("Custo Total", f"R$ {df_ativas['Total'].sum():,.2f}")
             c3.metric("Cancelamentos", len(df[df["Status"] == "Cancelada"]))
             col_g1, col_g2 = st.columns(2)
             with col_g1:
@@ -243,12 +245,12 @@ else:
         t1, t2 = st.tabs(["Viagens", "Equipe"])
         with t1:
             df_ed = st.data_editor(df, use_container_width=True, hide_index=True, column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"])})
-            if st.button("SALVAR VIAGENS"):
+            if st.button("SALVAR DADOS DE VIAGENS"):
                 df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel_Valor"] + df_ed["Outros_Valor"]
                 repo.update_file("dados_logistica.csv", "V_Edit", df_ed.to_csv(index=False), sha_viagens)
                 st.cache_data.clear(); st.rerun()
         with t2:
             df_u_ed = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True, column_config={"Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]), "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]), "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])})
-            if st.button("SALVAR CONFIGURAÇÕES EQUIPE"):
+            if st.button("SALVAR CONFIGURAÇÕES DE EQUIPE"):
                 repo.update_file("usuarios.csv", "U_Edit", df_u_ed.to_csv(index=False), sha_usuarios)
                 st.cache_data.clear(); st.rerun()
