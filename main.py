@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (RESTAURAÇÃO TOTAL DE CORES E BOTÕES)
+# 1. TEMA E CSS (CORREÇÃO VISUAL DO BOTÃO DE LOGIN)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -37,7 +37,6 @@ def forcar_tema_claro():
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 forcar_tema_claro()
 
-# CSS focado em destravar a cor do texto (p) dentro do botão (button)
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
@@ -50,7 +49,7 @@ st.markdown("""
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- ESTRATÉGIA PARA DESTRAVAR AS LETRAS DOS BOTÕES --- */
+    /* --- CONFIGURAÇÃO DO BOTÃO DE ENTRADA --- */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
         border: 2px solid #002D5E !important; 
@@ -59,18 +58,19 @@ st.markdown("""
         height: 50px !important;
     }
     
-    /* ALVO DIRETO NO TEXTO: Isso impede que ele fique branco no fundo branco */
-    div.stButton > button p {
+    /* FORÇAR A COR DO TEXTO PARA AZUL MARINHO NO FUNDO BRANCO */
+    div.stButton > button div p {
         color: #002D5E !important;
         font-weight: 900 !important;
     }
 
-    /* INVERSÃO NO HOVER (SETADO PELO MOUSE) */
+    /* QUANDO PASSA O MOUSE: FUNDO AZUL E TEXTO BRANCO */
     div.stButton > button:hover {
         background-color: #002D5E !important;
+        border: 2px solid #002D5E !important;
     }
     
-    div.stButton > button:hover p {
+    div.stButton > button:hover div p {
         color: #FFFFFF !important;
     }
     
@@ -118,7 +118,7 @@ def carregar_bancos():
 df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_bancos()
 
 # ==========================================================
-# 3. TELAS DE ACESSO (LOGIN)
+# 3. TELA DE LOGIN
 # ==========================================================
 if not st.session_state['logado']:
     st.markdown("""<style>.stApp { background-color: #002D5E !important; } h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
@@ -150,7 +150,7 @@ if not st.session_state['logado']:
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Erro de login.")
+                    else: st.error("Acesso negado.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
