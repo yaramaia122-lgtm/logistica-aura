@@ -37,19 +37,12 @@ forcar_tema_claro()
 # ==========================================================
 if not st.session_state['logado']:
     
-    # --- CSS EXCLUSIVO PARA O LOGIN ---
     st.markdown("""
     <style>
-        /* Fundo de toda a tela em Azul Marinho */
         .stApp { background-color: #002D5E !important; }
-        
-        /* Esconde o botão de abrir menu lateral no login */
         [data-testid="collapsedControl"] { display: none !important; }
-        
-        /* Letras e Títulos em Branco para dar contraste */
         h1, h2, h3, label, p { color: #FFFFFF !important; font-weight: bold !important; }
         
-        /* Campos de digitar Usuário e Senha */
         .stTextInput input { 
             background-color: #F0F7FF !important; 
             color: #002D5E !important; 
@@ -59,31 +52,23 @@ if not st.session_state['logado']:
         }
         input { -webkit-text-fill-color: #002D5E !important; }
         
-        /* === BOTÃO DE ENTRAR (CONFIGURAÇÃO DEFINITIVA) === */
-        
-        /* 1. ESTADO NORMAL (Sem o mouse) - Fundo Branco e Borda Branca */
         div[data-testid="stFormSubmitButton"] > button { 
             background-color: #FFFFFF !important; 
             border: 2px solid #FFFFFF !important; 
             border-radius: 8px !important;
             width: 100% !important; 
             height: 55px !important; 
+            margin-top: 10px !important;
         }
-        
-        /* Letras no ESTADO NORMAL - Forçado para Azul Marinho */
         div[data-testid="stFormSubmitButton"] > button p {
             color: #002D5E !important; 
             font-size: 18px !important;
             font-weight: 900 !important; 
         }
-        
-        /* 2. ESTADO HOVER (Com o mouse) - Fundo Azul e Borda Branca */
         div[data-testid="stFormSubmitButton"] > button:hover {
             background-color: #002D5E !important;
             border: 2px solid #FFFFFF !important;
         }
-        
-        /* Letras no ESTADO HOVER - Forçado para Branco */
         div[data-testid="stFormSubmitButton"] > button:hover p {
             color: #FFFFFF !important;
         }
@@ -99,7 +84,6 @@ if not st.session_state['logado']:
         with st.form("form_login"):
             usuario_digitado = st.text_input("Usuário Corporativo")
             senha_digitada = st.text_input("Senha de Acesso", type="password")
-            st.markdown("<br>", unsafe_allow_html=True)
             entrar = st.form_submit_button("ENTRAR NO SISTEMA")
             
             if entrar:
@@ -108,9 +92,7 @@ if not st.session_state['logado']:
                     "yara": "1234",
                     "motorista": "log2026"
                 }
-                
                 usuario_limpo = usuario_digitado.strip().lower()
-                
                 if usuario_limpo in usuarios_permitidos and usuarios_permitidos[usuario_limpo] == senha_digitada:
                     st.session_state['logado'] = True
                     st.session_state['usuario_atual'] = usuario_limpo
@@ -122,46 +104,37 @@ if not st.session_state['logado']:
 # 3. APP PRINCIPAL (SÓ CARREGA DEPOIS DO LOGIN)
 # ==========================================================
 else:
-    # --- CSS EXCLUSIVO DO APP (FUNDO BRANCO, BARRA AZUL) ---
     st.markdown("""
     <style>
         .stApp { background-color: #FFFFFF !important; }
         [data-testid="stSidebar"] { background-color: #002D5E !important; }
         [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
         
-        /* Textos do meio da tela em Azul Marinho */
         h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
         
-        /* Textos da Barra Lateral em Branco */
         [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
         [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-        /* Campos de Preenchimento */
         .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
             background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; 
         }
         input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
         div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
         
-        /* Botões do App */
         div.stButton > button { background-color: #E1E8F0 !important; border: 2px solid #002D5E !important; border-radius: 8px !important; width: 100% !important; height: 50px !important; }
         div.stButton > button * { color: #002D5E !important; font-weight: 800 !important; }
         
-        /* Tabelas */
-        table { width: 100%; border-collapse: collapse; }
-        th { background-color: #E1E8F0 !important; color: #002D5E !important; font-weight: 900 !important; font-size: 16px !important; border-bottom: 3px solid #002D5E !important; padding: 12px !important; text-align: left !important; }
-        td { background-color: #F0F7FF !important; color: #000000 !important; border-bottom: 1px solid #B0C4DE !important; padding: 10px !important; font-size: 15px !important; }
+        /* Ajuste para as tabelas modernas do Streamlit */
+        [data-testid="stDataFrame"] { border: 1px solid #002D5E !important; border-radius: 8px !important; overflow: hidden !important;}
     </style>
     """, unsafe_allow_html=True)
 
-    # --- Backend Github ---
     def carregar_dados():
         cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
         try:
             token = st.secrets["GITHUB_TOKEN"]
             auth = Auth.Token(token)
             g = Github(auth=auth)
-            
             repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
             contents = repo.get_contents("dados_logistica.csv")
             df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
@@ -173,7 +146,6 @@ else:
 
     df, sha, repo, g = carregar_dados()
 
-    # --- Sidebar / Menu ---
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
@@ -183,7 +155,6 @@ else:
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)"])
         
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        
         if st.button("Sair / Logout"):
             st.session_state['logado'] = False
             st.session_state['usuario_atual'] = ""
@@ -197,18 +168,25 @@ else:
             O acesso financeiro exige trava de segurança. Ao utilizar a ferramenta, você concorda com os termos corporativos.
             """)
 
-    # --- Telas ---
     if menu == "Agenda":
         st.title("Agenda de Viagens")
+        st.markdown("Visão geral das programações logísticas registradas no sistema.")
+        st.divider()
+        
         if not df.empty:
-            st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]])
+            # hide_index=True deixa a tabela perfeitamente alinhada sem números na esquerda
+            st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]], use_container_width=True, hide_index=True)
         else:
             st.info("Nenhuma viagem agendada no momento.")
 
     elif menu == "Programar Viagem":
         st.title("Programar Viagem")
+        st.markdown("Preencha os dados abaixo para registrar uma nova logística.")
         
         form = st.form("meu_form", clear_on_submit=True)
+        
+        # --- BLOCO 1: DADOS DA VIAGEM ---
+        form.markdown("### 1. Dados da Rota e Passageiro")
         col1, col2 = form.columns(2)
         
         nome = col1.text_input("Nome do Passageiro").upper()
@@ -237,21 +215,28 @@ else:
             lista_completa = sorted(lista_base)
             
         cc_selecionado = col1.selectbox("Centro de Custo (Selecione na lista)", lista_completa)
-        novo_cc = col1.text_input("+ Não achou? Cadastre um Novo Centro de Custo aqui:")
-        
-        v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
-        v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
+        novo_cc = col1.text_input("+ Cadastrar Novo Centro de Custo (Opcional):")
         
         data = col2.date_input("Data da Viagem", datetime.now(), format="DD/MM/YYYY")
         traj = col2.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
-        v_c = col2.number_input("Custo Combustível (R$)", min_value=0.0)
-        v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
+        obs = col2.text_area("Observações Adicionais (Opcional)")
+
+        form.divider()
         
-        obs = form.text_input("Observações Adicionais")
+        # --- BLOCO 2: CUSTOS FINANCEIROS ---
+        form.markdown("### 2. Previsão de Custos")
+        col3, col4 = form.columns(2)
         
-        st.markdown("---")
+        v_h = col3.number_input("Custo Hotel (R$)", min_value=0.0, format="%.2f")
+        v_a = col3.number_input("Custo Aéreo (R$)", min_value=0.0, format="%.2f")
+        
+        v_c = col4.number_input("Custo Combustível (R$)", min_value=0.0, format="%.2f")
+        v_o = col4.number_input("Outros Custos (R$)", min_value=0.0, format="%.2f")
+        
+        form.divider()
+        
+        # --- BLOCO 3: CONCLUSÃO ---
         aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade e Proteção de Dados (LGPD)")
-        
         gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
         if gravar:
@@ -277,12 +262,15 @@ else:
 
     elif menu == "Financeiro (Acesso ADM)":
         st.title("Controle Financeiro (Restrito)")
+        st.markdown("Acesso exclusivo para edição e acompanhamento de valores.")
+        st.divider()
         
         senha = st.text_input("Digite a senha de Administrador de Finanças:", type="password")
         
         if senha == "aura123":
             st.success("Acesso Liberado.")
-            df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+            # hide_index=True aqui também para a tabela financeira ficar perfeita!
+            df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True, hide_index=True)
             
             if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
                 if repo:
