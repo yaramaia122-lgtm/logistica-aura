@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (ESTRATÉGIA DE CONTRASTE ALTO)
+# 1. TEMA E CSS (RESTAURAÇÃO TOTAL DE CORES E BOTÕES)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -37,6 +37,7 @@ def forcar_tema_claro():
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 forcar_tema_claro()
 
+# CSS focado em destravar a cor do texto (p) dentro do botão (button)
 st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
@@ -49,30 +50,27 @@ st.markdown("""
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- NOVA ESTRATÉGIA DE BOTÕES --- */
+    /* --- ESTRATÉGIA PARA DESTRAVAR AS LETRAS DOS BOTÕES --- */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
         width: 100% !important;
         height: 50px !important;
-        /* Força o navegador a mostrar o conteúdo com cor própria */
-        color: #002D5E !important;
     }
     
-    /* Alvo direto no texto do parágrafo interno */
-    div.stButton > button div p {
+    /* ALVO DIRETO NO TEXTO: Isso impede que ele fique branco no fundo branco */
+    div.stButton > button p {
         color: #002D5E !important;
         font-weight: 900 !important;
     }
 
-    /* Inversão total na interação com a seta (Hover) */
+    /* INVERSÃO NO HOVER (SETADO PELO MOUSE) */
     div.stButton > button:hover {
         background-color: #002D5E !important;
-        border-color: #002D5E !important;
     }
     
-    div.stButton > button:hover div p {
+    div.stButton > button:hover p {
         color: #FFFFFF !important;
     }
     
