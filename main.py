@@ -14,7 +14,6 @@ if 'usuario_atual' not in st.session_state:
     st.session_state['usuario_atual'] = ""
 if 'perfil' not in st.session_state:
     st.session_state['perfil'] = ""
-# Novas variáveis para o fluxo de segurança do 1º Acesso
 if 'precisa_trocar_senha' not in st.session_state:
     st.session_state['precisa_trocar_senha'] = False
 if 'email_troca' not in st.session_state:
@@ -54,7 +53,7 @@ def carregar_bancos():
         g = Github(auth=auth)
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
         
-        # 1. Carregar/Criar Banco de Viagens
+        # 1. Carregar Viagens
         try:
             cont_viagens = repo.get_contents("dados_logistica.csv")
             df_v = pd.read_csv(io.StringIO(cont_viagens.decoded_content.decode()))
@@ -66,16 +65,14 @@ def carregar_bancos():
             df_v = pd.DataFrame(columns=cols_viagens)
             sha_v = None
 
-        # 2. Carregar/Criar Banco de Usuários
+        # 2. Carregar Usuários
         try:
             cont_usr = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_usr.decoded_content.decode()))
             sha_u = cont_usr.sha
-            # Se o banco antigo não tiver a coluna de Primeiro Acesso, adiciona automaticamente
             if "Primeiro_Acesso" not in df_u.columns:
                 df_u["Primeiro_Acesso"] = "Nao"
         except:
-            # Cria Admin Master obrigando a trocar a senha no primeiro login
             df_u = pd.DataFrame([["admin@aura.com", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
             try:
                 repo.create_file("usuarios.csv", "Criando banco de usuarios", df_u.to_csv(index=False))
@@ -91,7 +88,7 @@ def carregar_bancos():
 df, sha_viagens, df_usuarios, sha_usuarios, repo, g = carregar_bancos()
 
 # ==========================================================
-# 3. TELAS DE AUTENTICAÇÃO (LOGIN E REDEFINIÇÃO DE SENHA)
+# 3. TELAS DE AUTENTICAÇÃO
 # ==========================================================
 if not st.session_state['logado']:
     
@@ -118,7 +115,7 @@ if not st.session_state['logado']:
         # TELA 3.1: REDEFINIÇÃO OBRIGATÓRIA DE SENHA
         if st.session_state['precisa_trocar_senha']:
             st.markdown("<h2 style='color: white;'>Segurança: Nova Senha</h2>", unsafe_allow_html=True)
-            st.info("Este é o seu primeiro acesso ou sua senha foi resetada. Por diretrizes de segurança, crie uma senha pessoal que apenas você tenha conhecimento.")
+            st.info("[ INFO ] Este é o seu primeiro acesso ou sua senha foi resetada. Por diretrizes de segurança, crie uma senha pessoal.")
             
             with st.form("form_troca_senha"):
                 nova_senha = st.text_input("Digite sua Nova Senha", type="password")
@@ -127,28 +124,25 @@ if not st.session_state['logado']:
                 
                 if salvar_senha:
                     if len(nova_senha) < 4:
-                        st.warning("A senha deve ter pelo menos 4 caracteres.")
+                        st.warning("[ ATENÇÃO ] A senha deve ter pelo menos 4 caracteres.")
                     elif nova_senha != confirma_senha:
-                        st.error("As senhas não coincidem. Tente novamente.")
+                        st.error("[ ERRO ] As senhas não coincidem. Tente novamente.")
                     else:
                         if repo:
-                            # Localiza o usuário no banco e atualiza a senha e o status de primeiro acesso
                             email_alvo = st.session_state['email_troca']
                             idx = df_usuarios.index[df_usuarios['Email'].str.lower() == email_alvo].tolist()[0]
                             df_usuarios.at[idx, 'Senha'] = nova_senha
                             df_usuarios.at[idx, 'Primeiro_Acesso'] = 'Nao'
                             
-                            # Salva no Github
                             repo.update_file("usuarios.csv", f"Senha atualizada pelo usuario: {email_alvo}", df_usuarios.to_csv(index=False), sha_usuarios)
                             
-                            # Limpa os status para voltar à tela de login padrão
                             st.session_state['precisa_trocar_senha'] = False
                             st.session_state['email_troca'] = ""
                             st.cache_data.clear()
-                            st.success("Senha alterada com sucesso! Faça login novamente com sua nova senha.")
+                            st.success("[ OK ] Senha alterada com sucesso! Faça login novamente com sua nova senha.")
                             st.rerun()
                         else:
-                            st.error("Erro ao conectar com o servidor para gravar a senha.")
+                            st.error("[ ERRO ] Falha ao conectar com o servidor para gravar a senha.")
         
         # TELA 3.2: LOGIN PADRÃO
         else:
@@ -161,7 +155,7 @@ if not st.session_state['logado']:
                 
                 if entrar:
                     if df_usuarios.empty:
-                        st.error("Erro ao conectar com o banco de usuários. Verifique o Token.")
+                        st.error("[ ERRO ] Falha ao conectar com o banco de usuários. Verifique o Token.")
                     else:
                         email_limpo = email_digitado.strip().lower()
                         usuario_encontrado = df_usuarios[(df_usuarios['Email'].str.lower() == email_limpo) & 
@@ -169,7 +163,6 @@ if not st.session_state['logado']:
                                                          (df_usuarios['Status'] == 'Ativo')]
                         
                         if not usuario_encontrado.empty:
-                            # Verifica a regra de "Zero Trust" (Primeiro Acesso)
                             if usuario_encontrado.iloc[0]['Primeiro_Acesso'] == 'Sim':
                                 st.session_state['precisa_trocar_senha'] = True
                                 st.session_state['email_troca'] = email_limpo
@@ -180,10 +173,25 @@ if not st.session_state['logado']:
                                 st.session_state['perfil'] = usuario_encontrado.iloc[0]['Perfil']
                                 st.rerun()
                         else:
-                            st.error("E-mail ou senha incorretos, ou usuário inativo.")
+                            st.error("[ ERRO ] E-mail ou senha incorretos, ou usuário inativo.")
             
             with st.expander("Esqueceu sua senha?"):
                 st.info("Para redefinir sua senha, contate o Administrador do Sistema. Ele irá fornecer uma senha provisória para o seu próximo login.")
+            
+            # --- MÓDULO DE RESET (FERRAMENTA DE DESENVOLVEDOR) ---
+            st.markdown("<br>", unsafe_allow_html=True)
+            with st.expander("[ DEV TOOLS ] Manutenção do Sistema"):
+                st.warning("CUIDADO: Esta ação irá apagar todos os usuários atuais e recriar o banco do zero.")
+                if st.button("APAGAR E RESETAR BANCO DE USUÁRIOS"):
+                    if repo:
+                        try:
+                            cols_usuarios = ["Email", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
+                            df_reset = pd.DataFrame([["admin@aura.com", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
+                            repo.update_file("usuarios.csv", "Reset forçado pelo Dev", df_reset.to_csv(index=False), sha_usuarios)
+                            st.cache_data.clear()
+                            st.success("[ OK ] Banco de usuários formatado. Atualize a página e faça login.")
+                        except Exception as e:
+                            st.error(f"[ ERRO ] Falha ao resetar: {e}")
 
 # ==========================================================
 # 4. APP PRINCIPAL (SÓ CARREGA DEPOIS DO LOGIN)
@@ -249,7 +257,7 @@ else:
                 st.markdown("#### Destinos Mais Frequentes")
                 st.bar_chart(df["Trajeto"].value_counts())
         else:
-            st.info("Sem dados para gerar o dashboard.")
+            st.info("[ INFO ] Sem dados para gerar o dashboard.")
 
     elif menu == "Agenda":
         st.title("Agenda de Viagens")
@@ -258,7 +266,7 @@ else:
         if not df.empty:
             st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]], use_container_width=True, hide_index=True)
         else:
-            st.info("Nenhuma viagem agendada.")
+            st.info("[ INFO ] Nenhuma viagem agendada.")
 
     elif menu == "Programar Viagem":
         st.title("Programar Viagem")
@@ -304,16 +312,16 @@ else:
 
         if gravar:
             centro_custo_final = novo_cc.strip() if novo_cc.strip() != "" else cc_selecionado
-            if not nome: st.warning("ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
-            elif not aceite_lgpd: st.warning("ERRO: O aceite da Política é obrigatório.")
-            elif not repo: st.error("ERRO DE CONEXÃO com o banco de dados.")
+            if not nome: st.warning("[ ATENÇÃO ] O campo 'Nome do Passageiro' não pode ficar vazio.")
+            elif not aceite_lgpd: st.warning("[ ATENÇÃO ] O aceite da Política é obrigatório.")
+            elif not repo: st.error("[ ERRO ] Falha de conexão com o banco de dados.")
             else:
                 total = v_h + v_c + v_a + v_o
                 nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), st.session_state['usuario_atual']]], columns=df.columns)
                 df_final = pd.concat([df, nova_viagem], ignore_index=True)
                 repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha_viagens)
                 st.cache_data.clear()
-                st.success("VIAGEM PROGRAMADA E GRAVADA COM SUCESSO!")
+                st.success("[ OK ] VIAGEM PROGRAMADA E GRAVADA COM SUCESSO!")
                 st.rerun()
 
     elif menu == "Administração" and st.session_state.get('perfil') == "Administrador":
@@ -331,7 +339,7 @@ else:
                     df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
                     repo.update_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False), sha_viagens)
                     st.cache_data.clear()
-                    st.success("BASE DE DADOS ATUALIZADA!")
+                    st.success("[ OK ] BASE DE DADOS ATUALIZADA!")
                     st.rerun()
                     
         with tab_usr:
@@ -350,13 +358,13 @@ else:
                     if repo:
                         repo.update_file("usuarios.csv", "Edição de Acessos via Admin", df_usr_edit.to_csv(index=False), sha_usuarios)
                         st.cache_data.clear()
-                        st.success("SEGURANÇA ATUALIZADA COM SUCESSO!")
+                        st.success("[ OK ] SEGURANÇA ATUALIZADA COM SUCESSO!")
                         st.rerun()
             else:
-                st.error("Erro ao carregar banco de usuários.")
+                st.error("[ ERRO ] Falha ao carregar banco de usuários.")
             
         with tab_seg:
             st.markdown("### Arquitetura de Confiança Zero (Zero Trust)")
-            st.success("Forçar Troca de Senha de Novos Usuários: Ativo")
-            st.success("Senhas Definitivas Inacessíveis pelo Administrador: Ativo")
-            st.success("Criptografia em Nuvem e HTTPS: Ativo")
+            st.success("[ OK ] Forçar Troca de Senha de Novos Usuários: Ativo")
+            st.success("[ OK ] Senhas Definitivas Inacessíveis pelo Administrador: Ativo")
+            st.success("[ OK ] Criptografia em Nuvem e HTTPS: Ativo")
