@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (PADRONIZAÇÃO DEFINITIVA DE BOTÕES)
+# 1. TEMA E CSS (CORREÇÃO AGRESSIVA DOS BOTÕES)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -42,7 +42,7 @@ st.markdown("""
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     
-    /* Textos Gerais */
+    /* Títulos e Textos Gerais */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
@@ -51,24 +51,32 @@ st.markdown("""
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- PADRÃO YARA: TODOS OS BOTÕES DO APP --- */
+    /* --- CORREÇÃO DEFINITIVA DOS BOTÕES (ESTADO NORMAL) --- */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
-        color: #002D5E !important; /* LETRA AZUL NO FUNDO BRANCO */
+        color: #002D5E !important; /* Texto em Azul Marinho FORÇADO */
         font-weight: 900 !important;
         width: 100% !important;
         height: 50px !important;
         text-transform: uppercase;
-        transition: 0.3s;
     }
     
-    /* QUANDO PASSA O MOUSE: INVERTE AS CORES */
+    /* Forçar a cor do texto do botão mesmo que o sistema tente mudar */
+    div.stButton > button p {
+        color: #002D5E !important;
+        font-weight: 900 !important;
+    }
+
+    /* --- ESTADO QUANDO O MOUSE ESTÁ EM CIMA (HOVER) --- */
     div.stButton > button:hover {
         background-color: #002D5E !important;
-        color: #FFFFFF !important; /* LETRA BRANCA NO FUNDO AZUL */
         border: 2px solid #002D5E !important;
+    }
+    
+    div.stButton > button:hover p {
+        color: #FFFFFF !important; /* Texto fica Branco no fundo Azul */
     }
     
     /* Cabeçalho de Observações */
@@ -123,7 +131,6 @@ df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_ban
 # 3. TELAS DE ACESSO (LOGIN)
 # ==========================================================
 if not st.session_state['logado']:
-    # Fundo azul marinho na tela de login conforme padrão
     st.markdown("""<style>.stApp { background-color: #002D5E !important; } h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
@@ -145,7 +152,6 @@ if not st.session_state['logado']:
             with st.form("f_l"):
                 u = st.text_input("Usuário Corporativo")
                 s = st.text_input("Senha", type="password")
-                # Botão com letras em Azul Marinho no fundo branco
                 if st.form_submit_button("ENTRAR NO SISTEMA"):
                     udb = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
                     if not udb.empty:
@@ -166,7 +172,6 @@ else:
         st.write(f"Usuário: **{st.session_state['usuario_atual']}**")
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
         st.markdown("<br>", unsafe_allow_html=True)
-        # Botão de Encerrar Sessão com letras Azuis no fundo branco
         if st.button("ENCERRAR SESSÃO"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Dashboard":
