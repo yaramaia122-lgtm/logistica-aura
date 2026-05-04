@@ -59,8 +59,10 @@ if not st.session_state['logado']:
         }
         input { -webkit-text-fill-color: #002D5E !important; }
         
-        /* === BOTÃO DE ENTRAR BLINDADO === */
-        div.stButton > button { 
+        /* === BOTÃO DE ENTRAR (CONFIGURAÇÃO DEFINITIVA) === */
+        
+        /* 1. ESTADO NORMAL (Sem o mouse) - Fundo Branco e Borda Branca */
+        div[data-testid="stFormSubmitButton"] > button { 
             background-color: #FFFFFF !important; 
             border: 2px solid #FFFFFF !important; 
             border-radius: 8px !important;
@@ -68,19 +70,21 @@ if not st.session_state['logado']:
             height: 55px !important; 
         }
         
-        /* O asterisco (*) obriga TUDO dentro do botão a ficar Azul Marinho */
-        div.stButton > button * {
+        /* Letras no ESTADO NORMAL - Forçado para Azul Marinho */
+        div[data-testid="stFormSubmitButton"] > button p {
             color: #002D5E !important; 
             font-size: 18px !important;
             font-weight: 900 !important; 
         }
         
-        /* Efeito de passar o mouse (Hover) */
-        div.stButton > button:hover {
+        /* 2. ESTADO HOVER (Com o mouse) - Fundo Azul e Borda Branca */
+        div[data-testid="stFormSubmitButton"] > button:hover {
             background-color: #002D5E !important;
-            border-color: #FFFFFF !important;
+            border: 2px solid #FFFFFF !important;
         }
-        div.stButton > button:hover * {
+        
+        /* Letras no ESTADO HOVER - Forçado para Branco */
+        div[data-testid="stFormSubmitButton"] > button:hover p {
             color: #FFFFFF !important;
         }
     </style>
