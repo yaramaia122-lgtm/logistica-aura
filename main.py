@@ -59,7 +59,7 @@ if not st.session_state['logado']:
         }
         input { -webkit-text-fill-color: #002D5E !important; }
         
-        /* === BOTÃO DE ENTRAR CORRIGIDO (BLINDAGEM TOTAL) === */
+        /* === BOTÃO DE ENTRAR BLINDADO === */
         div.stButton > button { 
             background-color: #FFFFFF !important; 
             border: 2px solid #FFFFFF !important; 
@@ -68,11 +68,8 @@ if not st.session_state['logado']:
             height: 55px !important; 
         }
         
-        /* Força a letra Azul Marinho no estado normal para NÃO sumir */
-        div.stButton > button, 
-        div.stButton > button p, 
-        div.stButton > button span, 
-        div.stButton > button div {
+        /* O asterisco (*) obriga TUDO dentro do botão a ficar Azul Marinho */
+        div.stButton > button * {
             color: #002D5E !important; 
             font-size: 18px !important;
             font-weight: 900 !important; 
@@ -83,10 +80,7 @@ if not st.session_state['logado']:
             background-color: #002D5E !important;
             border-color: #FFFFFF !important;
         }
-        div.stButton > button:hover, 
-        div.stButton > button:hover p, 
-        div.stButton > button:hover span, 
-        div.stButton > button:hover div {
+        div.stButton > button:hover * {
             color: #FFFFFF !important;
         }
     </style>
@@ -95,7 +89,6 @@ if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        # Logo reduzida e centralizada
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
         st.markdown("<h2 style='color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
         
@@ -106,7 +99,6 @@ if not st.session_state['logado']:
             entrar = st.form_submit_button("ENTRAR NO SISTEMA")
             
             if entrar:
-                # === LISTA DE USUÁRIOS E SENHAS ===
                 usuarios_permitidos = {
                     "admin": "aura123",
                     "yara": "1234",
@@ -148,8 +140,8 @@ else:
         div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
         
         /* Botões do App */
-        div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 50px !important; }
-        div.stButton > button p { color: #002D5E !important; }
+        div.stButton > button { background-color: #E1E8F0 !important; border: 2px solid #002D5E !important; border-radius: 8px !important; width: 100% !important; height: 50px !important; }
+        div.stButton > button * { color: #002D5E !important; font-weight: 800 !important; }
         
         /* Tabelas */
         table { width: 100%; border-collapse: collapse; }
