@@ -6,11 +6,15 @@ import os
 from datetime import datetime
 
 # ==========================================================
-# 0. INICIALIZAÇÃO DE SESSÃO (LOGIN) E SEGURANÇA
+# 0. INICIALIZAÇÃO DE SESSÃO (LOGIN) E SEGURANÇA (CORRIGIDO)
 # ==========================================================
+# Agora o sistema verifica e cria cada chave individualmente, 
+# impedindo o erro de "KeyError" quando o app é atualizado.
 if 'logado' not in st.session_state:
     st.session_state['logado'] = False
+if 'usuario_atual' not in st.session_state:
     st.session_state['usuario_atual'] = ""
+if 'perfil' not in st.session_state:
     st.session_state['perfil'] = ""
 
 # ==========================================================
@@ -34,7 +38,7 @@ st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 forcar_tema_claro()
 
 # ==========================================================
-# 2. TELA DE LOGIN (TUDO AZUL MARINHO + ESQUECI A SENHA)
+# 2. TELA DE LOGIN (TUDO AZUL MARINHO)
 # ==========================================================
 if not st.session_state['logado']:
     
@@ -73,13 +77,6 @@ if not st.session_state['logado']:
         div[data-testid="stFormSubmitButton"] > button:hover p {
             color: #FFFFFF !important;
         }
-        
-        /* Estilo para o botão de esqueci a senha parecer um link */
-        .esqueci-senha {
-            text-align: center;
-            margin-top: 15px;
-            font-size: 14px;
-        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -95,7 +92,6 @@ if not st.session_state['logado']:
             entrar = st.form_submit_button("ENTRAR NO SISTEMA")
             
             if entrar:
-                # Banco de Usuários e Nível de Permissão (Admin vs Operador)
                 usuarios_permitidos = {
                     "admin": {"senha": "aura123", "perfil": "Administrador"},
                     "yara": {"senha": "1234", "perfil": "Administrador"},
@@ -112,7 +108,6 @@ if not st.session_state['logado']:
                 else:
                     st.error("Usuário ou senha incorretos. Acesso negado.")
         
-        # Módulo Esqueci a Senha Corporativo
         with st.expander("Esqueceu sua senha?"):
             st.info("Por diretrizes de segurança da informação (LGPD), a redefinição de senhas deve ser solicitada diretamente ao Administrador do Sistema ou ao setor de TI da Aura. Acesso não autorizado está sujeito a sanções disciplinares.")
 
@@ -142,7 +137,6 @@ else:
         
         [data-testid="stDataFrame"] { border: 1px solid #002D5E !important; border-radius: 8px !important; overflow: hidden !important;}
         
-        /* Ajuste de abas (Tabs) do menu admin */
         .stTabs [data-baseweb="tab-list"] { gap: 20px; }
         .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: #F0F7FF; border-radius: 6px 6px 0px 0px; padding-left: 20px; padding-right: 20px;}
         .stTabs [aria-selected="true"] { background-color: #002D5E !important; color: white !important;}
@@ -162,7 +156,6 @@ else:
             for c in cols:
                 if c not in df.columns: df[c] = 0.0 if c in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
             
-            # Garantir que a coluna Total seja número para o Dashboard não quebrar
             df["Total"] = pd.to_numeric(df["Total"], errors='coerce').fillna(0)
             return df, contents.sha, repo, g
         except:
@@ -176,9 +169,8 @@ else:
         st.markdown(f"<p style='color: white; text-align: center; font-size: 14px;'>Usuário: <b>{st.session_state['usuario_atual'].upper()}</b><br>Perfil: {st.session_state['perfil']}</p>", unsafe_allow_html=True)
         st.markdown("---")
         
-        # Menu Estruturado
         opcoes_menu = ["Dashboard", "Agenda", "Programar Viagem"]
-        if st.session_state['perfil'] == "Administrador":
+        if st.session_state.get('perfil') == "Administrador":
             opcoes_menu.append("Administração")
             
         menu = st.radio("NAVEGAÇÃO DO SISTEMA", opcoes_menu)
@@ -190,15 +182,12 @@ else:
             st.session_state['perfil'] = ""
             st.rerun()
 
-    # --- TELAS DO APLICATIVO ---
-    
     if menu == "Dashboard":
         st.title("Painel de Indicadores (Dashboard)")
         st.markdown("Resumo gerencial e métricas de desempenho logístico.")
         st.divider()
         
         if not df.empty:
-            # Cards de Métricas Principais
             col1, col2, col3 = st.columns(3)
             total_viagens = len(df)
             custo_total = df["Total"].sum()
@@ -210,7 +199,6 @@ else:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # Gráficos Analíticos
             col_graf1, col_graf2 = st.columns(2)
             with col_graf1:
                 st.markdown("#### Custos por Centro de Custo")
@@ -309,12 +297,11 @@ else:
                 st.success("VIAGEM PROGRAMADA E GRAVADA COM SUCESSO!")
                 st.rerun()
 
-    elif menu == "Administração":
+    elif menu == "Administração" and st.session_state.get('perfil') == "Administrador":
         st.title("Painel de Administração")
         st.markdown("Módulo central de gestão corporativa. Restrito ao nível Administrador.")
         st.divider()
         
-        # Módulo Avançado com Abas (Tabs)
         tab_fin, tab_usr, tab_seg = st.tabs(["Controle Financeiro", "Gestão de Usuários", "Governança e Segurança"])
         
         with tab_fin:
