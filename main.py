@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from github import Github, Auth  # <--- Atualizado aqui com a dica do outro chat
+from github import Github, Auth
 import io
 import os
 from datetime import datetime
@@ -30,7 +30,7 @@ forcar_tema_claro()
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
 # ==========================================================
-# 3. UI/UX - ESTILO DEFINITIVO (INTOCADO)
+# 3. UI/UX - ESTILO DEFINITIVO
 # ==========================================================
 st.markdown("""
 <style>
@@ -61,12 +61,11 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 4. BACKEND GITHUB (AGORA COM A CONEXÃO MAIS SEGURA)
+# 4. BACKEND GITHUB SEGURANÇA MÁXIMA
 # ==========================================================
 def carregar_dados():
     cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total"]
     try:
-        # AQUI ENTROU A DICA BOA DO SEU OUTRO CHAT (Evita o Erro 401)
         token = st.secrets["GITHUB_TOKEN"]
         auth = Auth.Token(token)
         g = Github(auth=auth)
@@ -83,13 +82,13 @@ def carregar_dados():
 df, sha, repo, g = carregar_dados()
 
 # ==========================================================
-# 5. SIDEBAR / MENU
+# 5. SIDEBAR / MENU COM NOVA ABA DE PRIVACIDADE
 # ==========================================================
 with st.sidebar:
     st.markdown("<br>", unsafe_allow_html=True)
     st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
     st.markdown("---")
-    menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)"])
+    menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)", "Política de Privacidade"])
 
 # ==========================================================
 # 6. TELAS E APLICAÇÃO
@@ -182,3 +181,27 @@ elif menu == "Financeiro (Acesso ADM)":
                 st.rerun()
     elif senha != "":
         st.error("Senha incorreta. Acesso negado.")
+
+elif menu == "Política de Privacidade":
+    st.title("🛡️ Política de Privacidade e Proteção de Dados")
+    
+    st.markdown("""
+    ### 1. Finalidade da Coleta de Dados
+    O aplicativo **Aura Apoena Logistics** tem o propósito exclusivo de gerenciar o fluxo interno de viagens corporativas, controlando escalas de motoristas, itinerários e a alocação de custos por centro de despesa.
+
+    ### 2. Tratamento e Armazenamento (LGPD)
+    Todas as informações inseridas neste sistema (nomes, rotas e valores) são tratadas de forma estritamente corporativa e sigilosa.
+    * Os dados não são vendidos, compartilhados ou expostos a terceiros externos à operação da Aura.
+    * O armazenamento é feito em um banco de dados em nuvem criptografado (GitHub Repository) de acesso exclusivo da administração.
+
+    ### 3. Níveis de Acesso e Segurança
+    Para garantir a privacidade das informações sensíveis:
+    * **Visão Operacional (Agenda):** Exibe apenas informações necessárias para a logística (Passageiro, Motorista, Destino e Data).
+    * **Visão Gerencial (Financeiro):** É protegida por **Trava de Autenticação (Senha de Administrador)**, garantindo que apenas profissionais autorizados possam visualizar e editar valores em reais (R$) relacionados a hotel, aéreo e combustível.
+
+    ### 4. Concordância
+    Ao utilizar este sistema para registrar programações de viagem, você atesta ciência de que os dados informados trafegam de forma segura e são necessários para a prestação de contas, auditoria e logística interna da empresa.
+    
+    ---
+    *Documento interno voltado para compliance e boas práticas de gestão de dados corporativos.*
+    """)
