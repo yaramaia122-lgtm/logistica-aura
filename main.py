@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (REVISÃO DEFINITIVA DE BOTÕES)
+# 1. TEMA E CSS (ESTRATÉGIA DE CONTRASTE ALTO)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -49,29 +49,30 @@ st.markdown("""
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- CONFIGURAÇÃO DE BOTÕES (ESTADO NORMAL - SEM SETA) --- */
+    /* --- NOVA ESTRATÉGIA DE BOTÕES --- */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
         width: 100% !important;
         height: 50px !important;
+        /* Força o navegador a mostrar o conteúdo com cor própria */
+        color: #002D5E !important;
     }
     
-    /* FORÇAR LETRA AZUL MARINHO QUANDO ESTIVER BRANCO */
-    div.stButton > button p {
+    /* Alvo direto no texto do parágrafo interno */
+    div.stButton > button div p {
         color: #002D5E !important;
         font-weight: 900 !important;
     }
 
-    /* --- ESTADO COM A SETA EM CIMA (HOVER) --- */
+    /* Inversão total na interação com a seta (Hover) */
     div.stButton > button:hover {
         background-color: #002D5E !important;
-        border: 2px solid #002D5E !important;
+        border-color: #002D5E !important;
     }
     
-    /* LETRA FICA BRANCA NO FUNDO AZUL */
-    div.stButton > button:hover p {
+    div.stButton > button:hover div p {
         color: #FFFFFF !important;
     }
     
@@ -232,12 +233,12 @@ else:
         t1, t2 = st.tabs(["Viagens", "Equipe"])
         with t1:
             df_ed = st.data_editor(df, use_container_width=True, hide_index=True, column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"])})
-            if st.button("SALVAR DADOS DE VIAGENS"):
+            if st.button("SALVAR VIAGENS"):
                 df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel_Valor"] + df_ed["Outros_Valor"]
                 repo.update_file("dados_logistica.csv", "V_Edit", df_ed.to_csv(index=False), sha_viagens)
                 st.cache_data.clear(); st.rerun()
         with t2:
             df_u_ed = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True, column_config={"Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]), "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]), "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])})
-            if st.button("SALVAR CONFIGURAÇÕES DE EQUIPE"):
+            if st.button("SALVAR EQUIPE"):
                 repo.update_file("usuarios.csv", "U_Edit", df_u_ed.to_csv(index=False), sha_usuarios)
                 st.cache_data.clear(); st.rerun()
