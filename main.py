@@ -33,49 +33,64 @@ st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 forcar_tema_claro()
 
 # ==========================================================
-# 2. UI/UX - ESTILO DEFINITIVO
-# ==========================================================
-st.markdown("""
-<style>
-    .stApp { background-color: #FFFFFF !important; }
-    [data-testid="stSidebar"] { background-color: #002D5E !important; }
-    [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
-    h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
-    
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
-
-    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
-        background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; 
-    }
-    input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
-    div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
-    
-    div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 50px !important; }
-    
-    table { width: 100%; border-collapse: collapse; }
-    th { background-color: #E1E8F0 !important; color: #002D5E !important; font-weight: 900 !important; font-size: 16px !important; border-bottom: 3px solid #002D5E !important; padding: 12px !important; text-align: left !important; }
-    td { background-color: #F0F7FF !important; color: #000000 !important; border-bottom: 1px solid #B0C4DE !important; padding: 10px !important; font-size: 15px !important; }
-</style>
-""", unsafe_allow_html=True)
-
-# ==========================================================
-# 3. TELA DE LOGIN (BLINDAGEM DO APP)
+# 2. TELA DE LOGIN (TUDO AZUL MARINHO)
 # ==========================================================
 if not st.session_state['logado']:
-    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    # --- CSS EXCLUSIVO PARA O LOGIN ---
+    st.markdown("""
+    <style>
+        /* Fundo de toda a tela em Azul Marinho */
+        .stApp { background-color: #002D5E !important; }
+        
+        /* Esconde o botão de abrir menu lateral no login */
+        [data-testid="collapsedControl"] { display: none !important; }
+        
+        /* Letras e Títulos em Branco para dar contraste */
+        h1, h2, h3, label, p { color: #FFFFFF !important; font-weight: bold !important; }
+        
+        /* Campos de digitar Usuário e Senha */
+        .stTextInput input { 
+            background-color: #F0F7FF !important; 
+            color: #002D5E !important; 
+            border: none !important; 
+            border-radius: 8px !important; 
+            font-weight: bold !important;
+        }
+        input { -webkit-text-fill-color: #002D5E !important; }
+        
+        /* Botão de Entrar */
+        div.stButton > button { 
+            background-color: #FFFFFF !important; 
+            color: #002D5E !important; 
+            border: none !important; 
+            border-radius: 8px !important;
+            font-weight: 900 !important; 
+            width: 100% !important; 
+            height: 55px !important; 
+            font-size: 18px !important;
+        }
+        div.stButton > button:hover {
+            background-color: #E1E8F0 !important;
+            color: #000000 !important;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=300)
-        st.title("🔐 Acesso Restrito")
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", use_container_width=True)
+        st.markdown("<h2 style='text-align: center; color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
         
         with st.form("form_login"):
             usuario_digitado = st.text_input("Usuário Corporativo")
-            senha_digitada = st.text_input("Senha", type="password")
-            entrar = st.form_submit_button("Entrar no Sistema")
+            senha_digitada = st.text_input("Senha de Acesso", type="password")
+            st.markdown("<br>", unsafe_allow_html=True)
+            entrar = st.form_submit_button("ENTRAR NO SISTEMA")
             
             if entrar:
-                # === LISTA DE USUÁRIOS E SENHAS (Pode alterar aqui!) ===
+                # === LISTA DE USUÁRIOS E SENHAS ===
                 usuarios_permitidos = {
                     "admin": "aura123",
                     "yara": "1234",
@@ -90,11 +105,42 @@ if not st.session_state['logado']:
                     st.rerun()
                 else:
                     st.error("❌ Usuário ou senha incorretos. Acesso negado.")
-                    
+
 # ==========================================================
-# 4. APP PRINCIPAL (SÓ APARECE DEPOIS DO LOGIN)
+# 3. APP PRINCIPAL (SÓ CARREGA DEPOIS DO LOGIN)
 # ==========================================================
 else:
+    # --- CSS EXCLUSIVO DO APP (FUNDO BRANCO, BARRA AZUL) ---
+    st.markdown("""
+    <style>
+        .stApp { background-color: #FFFFFF !important; }
+        [data-testid="stSidebar"] { background-color: #002D5E !important; }
+        [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
+        
+        /* Textos do meio da tela em Azul Marinho */
+        h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
+        
+        /* Textos da Barra Lateral em Branco */
+        [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
+
+        /* Campos de Preenchimento */
+        .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
+            background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; 
+        }
+        input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
+        div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
+        
+        /* Botões do App */
+        div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 50px !important; }
+        
+        /* Tabelas */
+        table { width: 100%; border-collapse: collapse; }
+        th { background-color: #E1E8F0 !important; color: #002D5E !important; font-weight: 900 !important; font-size: 16px !important; border-bottom: 3px solid #002D5E !important; padding: 12px !important; text-align: left !important; }
+        td { background-color: #F0F7FF !important; color: #000000 !important; border-bottom: 1px solid #B0C4DE !important; padding: 10px !important; font-size: 15px !important; }
+    </style>
+    """, unsafe_allow_html=True)
+
     # --- Backend Github ---
     def carregar_dados():
         cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
@@ -118,22 +164,19 @@ else:
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown(f"<p style='color: white;'>Logado como: <b>{st.session_state['usuario_atual'].upper()}</b></p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: white; text-align: center;'>Logado como: <b>{st.session_state['usuario_atual'].upper()}</b></p>", unsafe_allow_html=True)
         st.markdown("---")
         
-        # Menu principal (Limpo)
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)"])
         
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         
-        # Botão de Sair
         if st.button("Sair / Logout"):
             st.session_state['logado'] = False
             st.session_state['usuario_atual'] = ""
             st.rerun()
             
         st.markdown("---")
-        # Política Escondida em uma Gaveta Expansível
         with st.expander("🛡️ Política de Privacidade LGPD"):
             st.caption("""
             **Uso Interno:** Este app gerencia o fluxo de viagens da Aura. 
@@ -193,7 +236,6 @@ else:
         
         obs = form.text_input("Observações Adicionais")
         
-        # LGPD Ativo (Essencial para manter o escudo jurídico sem ocupar espaço no menu)
         st.markdown("---")
         aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade (LGPD)")
         
@@ -211,7 +253,7 @@ else:
             else:
                 total = v_h + v_c + v_a + v_o
                 timestamp_aceite = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-                usuario_criador = st.session_state['usuario_atual'] # Registra quem foi o usuário logado que criou a viagem
+                usuario_criador = st.session_state['usuario_atual']
                 
                 nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, timestamp_aceite, usuario_criador]], columns=df.columns)
                 df_final = pd.concat([df, nova_viagem], ignore_index=True)
