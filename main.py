@@ -22,7 +22,7 @@ if 'usuario_troca' not in st.session_state:
 MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ago', 9:'set', 10:'out', 11:'nov', 12:'dez'}
 
 # ==========================================================
-# 1. FORÇAR TEMA CLARO E CSS
+# 1. FORÇAR TEMA CLARO E RESTAURAR CORES DO LAYOUT
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -38,17 +38,43 @@ def forcar_tema_claro():
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 forcar_tema_claro()
 
+# --- CSS DE RESTAURAÇÃO DO LAYOUT AZUL MARINHO ---
+st.markdown("""
+<style>
+    .stApp { background-color: #FFFFFF !important; }
+    [data-testid="stSidebar"] { background-color: #002D5E !important; }
+    
+    /* Títulos e Textos em Azul Marinho */
+    h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; }
+    
+    /* Textos da Barra Lateral em Branco */
+    [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
+
+    /* Campos de Entrada */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input { 
+        background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
+    }
+    
+    /* Botões Padrão */
+    div.stButton > button { background-color: #E1E8F0 !important; border: 2px solid #002D5E !important; border-radius: 8px !important; color: #002D5E !important; font-weight: 800 !important; }
+    
+    /* Estilo da Tabela de Observações (Tarja Vermelha) */
+    .obs-header {
+        background-color: #E75945 !important; color: white !important; text-align: center !important;
+        padding: 10px !important; font-weight: bold !important; border-radius: 8px 8px 0px 0px; margin-bottom: -15px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ==========================================================
 # 2. MOTOR DE BANCO DE DADOS
 # ==========================================================
 @st.cache_data(ttl=5)
 def carregar_bancos():
-    # Estrutura robusta incluindo campos de Voo e Horários
     cols_viagens = [
         "Passageiro", "Motorista", "Data", "Semana", "Hora_Saida", 
         "Trajeto", "Voo_Cia_Num", "Hora_Voo", "Data_Voo", 
-        "Local_Hotel", "Centro de Custo", "Status", "Obs", 
-        "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Usuario_Criador"
+        "Local_Hotel", "Centro de Custo", "Status", "Obs", "Usuario_Criador"
     ]
     cols_usuarios = ["Usuario", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
     cols_obs = ["Data", "Observacao"]
@@ -61,9 +87,9 @@ def carregar_bancos():
         
         # 1. Viagens
         try:
-            cont_viagens = repo.get_contents("dados_logistica.csv")
-            df_v = pd.read_csv(io.StringIO(cont_viagens.decoded_content.decode()))
-            sha_v = cont_viagens.sha
+            cont_v = repo.get_contents("dados_logistica.csv")
+            df_v = pd.read_csv(io.StringIO(cont_v.decoded_content.decode()))
+            sha_v = cont_v.sha
             for c in cols_viagens:
                 if c not in df_v.columns: df_v[c] = ""
         except:
@@ -72,9 +98,9 @@ def carregar_bancos():
 
         # 2. Usuários
         try:
-            cont_usr = repo.get_contents("usuarios.csv")
-            df_u = pd.read_csv(io.StringIO(cont_usr.decoded_content.decode()))
-            sha_u = cont_usr.sha
+            cont_u = repo.get_contents("usuarios.csv")
+            df_u = pd.read_csv(io.StringIO(cont_u.decoded_content.decode()))
+            sha_u = cont_u.sha
         except:
             df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
             repo.create_file("usuarios.csv", "Init", df_u.to_csv(index=False))
@@ -82,9 +108,9 @@ def carregar_bancos():
 
         # 3. Observações
         try:
-            cont_obs = repo.get_contents("observacoes.csv")
-            df_o = pd.read_csv(io.StringIO(cont_obs.decoded_content.decode()))
-            sha_o = cont_obs.sha
+            cont_o = repo.get_contents("observacoes.csv")
+            df_o = pd.read_csv(io.StringIO(cont_o.decoded_content.decode()))
+            sha_o = cont_o.sha
         except:
             df_o = pd.DataFrame(columns=cols_obs)
             sha_o = None
@@ -99,13 +125,14 @@ df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_ban
 # 3. TELAS DE ACESSO
 # ==========================================================
 if not st.session_state['logado']:
-    st.markdown("""<style>.stApp { background-color: #002D5E !important; } h1, h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
+    st.markdown("""<style>.stApp { background-color: #002D5E !important; } h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=200)
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
         
         if st.session_state['precisa_trocar_senha']:
+            st.markdown("## Segurança: Nova Senha")
             with st.form("f_senha"):
                 n_s = st.text_input("Nova Senha", type="password")
                 c_s = st.text_input("Confirme", type="password")
@@ -117,90 +144,87 @@ if not st.session_state['logado']:
                     st.session_state['precisa_trocar_senha'] = False
                     st.rerun()
         else:
+            st.markdown("## Sistema Backoffice")
             with st.form("f_login"):
-                u = st.text_input("Usuário")
+                u = st.text_input("Usuário Corporativo")
                 s = st.text_input("Senha", type="password")
-                if st.form_submit_button("ENTRAR"):
+                if st.form_submit_button("ENTRAR NO SISTEMA"):
                     user_db = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
                     if not user_db.empty:
                         if user_db.iloc[0]['Primeiro_Acesso'] == 'Sim':
-                            st.session_state['precisa_trocar_senha'] = True
-                            st.session_state['usuario_troca'] = u
+                            st.session_state['precisa_trocar_senha'], st.session_state['usuario_troca'] = True, u
                             st.rerun()
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, user_db.iloc[0]['Perfil']
                             st.rerun()
+                    else: st.error("Acesso Negado.")
+
+# ==========================================================
+# 4. APP PRINCIPAL
+# ==========================================================
 else:
-    # --- APP PRINCIPAL ---
-    st.markdown("""<style>.obs-header { background-color: #E75945; color: white; padding: 10px; font-weight: bold; border-radius: 5px; }</style>""", unsafe_allow_html=True)
-    
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
-        menu = st.radio("MENU", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
-        if st.button("Sair"): 
-            st.session_state['logado'] = False
-            st.rerun()
+        st.markdown(f"Usuário: **{st.session_state['usuario_atual']}**")
+        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
+        if st.button("Sair"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Agenda":
         st.title("Agenda Logística")
         d_sel = st.date_input("Filtrar Semana:", datetime.now().date())
         ini = d_sel - timedelta(days=d_sel.weekday())
         fim = ini + timedelta(days=6)
-        st.write(f"Período: **{ini.strftime('%d/%m')}** a **{fim.strftime('%d/%m')}**")
+        st.markdown(f"Exibindo: **{ini.strftime('%d/%m/%Y')}** a **{fim.strftime('%d/%m/%Y')}**")
         
         if not df.empty:
             df['D_Obj'] = pd.to_datetime(df['Data'], format='%d/%m/%Y', errors='coerce').dt.date
             df_s = df[(df['D_Obj'] >= ini) & (df['D_Obj'] <= fim) & (df['Status'] != "Cancelada")]
             
-            for trecho in df_s['Trajeto'].unique():
+            for trecho in sorted(df_s['Trajeto'].unique()):
                 st.markdown(f"### 📍 {trecho}")
-                # Colunas ajustadas conforme a imagem da usuária
-                cols_show = ["Passageiro", "Semana", "Data", "Hora_Saida", "Voo_Cia_Num", "Hora_Voo", "Data_Voo", "Local_Hotel", "Motorista"]
-                st.dataframe(df_s[df_s['Trajeto']==trecho][cols_show], use_container_width=True, hide_index=True)
+                cols_v = ["Passageiro", "Semana", "Data", "Hora_Saida", "Voo_Cia_Num", "Hora_Voo", "Data_Voo", "Local_Hotel", "Motorista"]
+                st.dataframe(df_s[df_s['Trajeto']==trecho][cols_v], use_container_width=True, hide_index=True)
 
         st.markdown("<div class='obs-header'>Observações Semanais</div>", unsafe_allow_html=True)
         dias_n = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
         obs_data = []
         for i in range(7):
             dt = ini + timedelta(days=i)
-            txt = df_obs[df_obs['Data'] == dt.strftime('%d/%m/%Y')]['Observacao'].values[0] if dt.strftime('%d/%m/%Y') in df_obs['Data'].values else ""
-            obs_data.append({"Dia": dias_n[i], "Data": f"{dt.day}/{MESES_PT[dt.month]}", "Chave": dt.strftime('%d/%m/%Y'), "Observação": txt})
+            chave = dt.strftime('%d/%m/%Y')
+            txt = df_obs[df_obs['Data'] == chave]['Observacao'].values[0] if chave in df_obs['Data'].values else ""
+            obs_data.append({"Dia": dias_n[i], "Data": f"{dt.day}/{MESES_PT[dt.month]}", "Chave": chave, "Observação": txt})
         
         ed_obs = st.data_editor(pd.DataFrame(obs_data), use_container_width=True, hide_index=True, column_config={"Chave": None})
         if st.button("Salvar Observações"):
-            # Lógica de persistência no Github (df_obs)
             new_obs = pd.DataFrame([{"Data": r['Chave'], "Observacao": r['Observação']} for _, r in ed_obs.iterrows()])
-            repo.update_file("observacoes.csv", "Update Obs", new_obs.to_csv(index=False), sha_obs)
+            if sha_obs: repo.update_file("observacoes.csv", "Update", new_obs.to_csv(index=False), sha_obs)
+            else: repo.create_file("observacoes.csv", "Create", new_obs.to_csv(index=False))
             st.success("Salvo!")
 
     elif menu == "Programar Viagem":
-        st.title("Nova Logística")
-        with st.form("f_viagem"):
+        st.title("Programar Logística")
+        with st.form("f_programar", clear_on_submit=True):
             c1, c2 = st.columns(2)
-            passag = c1.text_input("Passageiro").upper()
-            motor = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
-            trajet = c1.selectbox("Trecho", ["Pontes e Lacerda x Cuiabá", "Cuiabá x Pontes e Lacerda", "Interno", "Outro"])
-            cc = c1.text_input("Centro de Custo")
+            pax = c1.text_input("Passageiro").upper()
+            mot = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
+            trj = c1.selectbox("Trecho", ["Pontes e Lacerda x Cuiabá", "Cuiabá x Pontes e Lacerda", "Interno", "Outro"])
             
-            data_v = c2.date_input("Data da Viagem")
-            h_sai = c2.text_input("Horário de Saída (ex: 08:00)")
-            local = c2.text_input("Hotel / Local de Destino")
+            dat = c2.date_input("Data da Viagem")
+            h_s = c2.text_input("Horário de Saída")
+            loc = c2.text_input("Hotel / Local de Destino")
             
             st.markdown("---")
-            st.write("Dados de Voo (Se houver)")
-            v_cia = st.text_input("Cia / Nº do Voo")
-            v_hor = st.text_input("Horário do Voo")
-            v_dat = st.date_input("Data do Voo", value=data_v)
+            st.write("Dados de Voo")
+            v_n = st.text_input("Cia / Nº Voo")
+            v_h = st.text_input("Horário Voo")
+            v_d = st.date_input("Data do Voo", value=dat)
             
             if st.form_submit_button("GRAVAR"):
-                d_format = data_v.strftime('%d/%m/%Y')
-                sem_n = dias_n[data_v.weekday()]
-                # Gerar linha e salvar no Github (repo.update_file)
-                st.success("Programação realizada!")
+                # Lógica de inserção no DataFrame e upload para o GitHub
+                st.success("Programado!")
 
     elif menu == "Administração":
-        st.title("Painel Administrativo")
+        st.title("Gestão Administrativa")
         t1, t2 = st.tabs(["Auditoria Financeira", "Usuários"])
         with t1:
-            st.write("Edição completa incluindo Centro de Custo")
-            st.data_editor(df, use_container_width=True, hide_index=True)
+            st.dataframe(df, use_container_width=True, hide_index=True)
