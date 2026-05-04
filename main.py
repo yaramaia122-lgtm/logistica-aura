@@ -39,21 +39,17 @@ st.markdown("""
     [data-testid="stSidebar"] [data-testid="stImage"] img { filter: drop-shadow(0px 10px 15px rgba(0,0,0,0.6)); }
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; opacity: 1 !important; }
     
-    /* BARRA LATERAL BRANCA */
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3, 
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-    /* Campos de Preenchimento */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; 
     }
     input { color: #002D5E !important; -webkit-text-fill-color: #002D5E !important; font-weight: 600 !important; }
     div[data-baseweb="select"] span { color: #002D5E !important; font-weight: 600 !important; }
     
-    /* Botões */
     div.stButton > button { background-color: #E1E8F0 !important; color: #002D5E !important; border: 2px solid #002D5E !important; font-weight: 800 !important; width: 100% !important; height: 50px !important; }
     
-    /* Tabela */
     table { width: 100%; border-collapse: collapse; }
     th { background-color: #E1E8F0 !important; color: #002D5E !important; font-weight: 900 !important; font-size: 16px !important; border-bottom: 3px solid #002D5E !important; padding: 12px !important; text-align: left !important; }
     td { background-color: #F0F7FF !important; color: #000000 !important; border-bottom: 1px solid #B0C4DE !important; padding: 10px !important; font-size: 15px !important; }
@@ -64,7 +60,7 @@ st.markdown("""
 # 4. BACKEND GITHUB SEGURANÇA MÁXIMA
 # ==========================================================
 def carregar_dados():
-    cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total"]
+    cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD"]
     try:
         token = st.secrets["GITHUB_TOKEN"]
         auth = Auth.Token(token)
@@ -109,7 +105,6 @@ elif menu == "Programar Viagem":
     nome = col1.text_input("Nome do Passageiro").upper()
     moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
     
-    # === SISTEMA INTELIGENTE DE CENTRO DE CUSTO ===
     lista_base = [
         "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
         "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
@@ -138,14 +133,17 @@ elif menu == "Programar Viagem":
     v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
     v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
     
-    # Data no Formato Brasileiro
     data = col2.date_input("Data da Viagem", datetime.now(), format="DD/MM/YYYY")
-    
     traj = col2.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
     v_c = col2.number_input("Custo Combustível (R$)", min_value=0.0)
     v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
     
     obs = form.text_input("Observações Adicionais")
+    
+    # === CONSENTIMENTO ATIVO (LGPD) ===
+    st.markdown("---")
+    aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade e Proteção de Dados (LGPD)")
+    
     gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
     if gravar:
@@ -153,11 +151,17 @@ elif menu == "Programar Viagem":
 
         if not nome:
             st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
+        elif not aceite_lgpd:
+            st.warning("⚠️ ERRO: Você deve concordar com a Política de Privacidade para gravar o registro.")
         elif not repo:
             st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
         else:
             total = v_h + v_c + v_a + v_o
-            nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total]], columns=df.columns)
+            
+            # Registra o Timestamp do Aceite (Data e Hora da ação)
+            timestamp_aceite = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            
+            nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, timestamp_aceite]], columns=df.columns)
             df_final = pd.concat([df, nova_viagem], ignore_index=True)
             
             repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha)
@@ -193,14 +197,15 @@ elif menu == "Política de Privacidade":
     Todas as informações inseridas neste sistema (nomes, rotas e valores) são tratadas de forma estritamente corporativa e sigilosa.
     * Os dados não são vendidos, compartilhados ou expostos a terceiros externos à operação da Aura.
     * O armazenamento é feito em um banco de dados em nuvem criptografado (GitHub Repository) de acesso exclusivo da administração.
+    * **Consentimento Ativo:** O aceite desta política gera um registro de *timestamp* (data e hora) atrelado ao envio do formulário, garantindo a conformidade com a LGPD.
 
     ### 3. Níveis de Acesso e Segurança
     Para garantir a privacidade das informações sensíveis:
     * **Visão Operacional (Agenda):** Exibe apenas informações necessárias para a logística (Passageiro, Motorista, Destino e Data).
     * **Visão Gerencial (Financeiro):** É protegida por **Trava de Autenticação (Senha de Administrador)**, garantindo que apenas profissionais autorizados possam visualizar e editar valores em reais (R$) relacionados a hotel, aéreo e combustível.
 
-    ### 4. Concordância
-    Ao utilizar este sistema para registrar programações de viagem, você atesta ciência de que os dados informados trafegam de forma segura e são necessários para a prestação de contas, auditoria e logística interna da empresa.
+    ### 4. Termos de Uso e Concordância
+    Ao utilizar este sistema para registrar programações de viagem e assinalar a caixa de concordância, o usuário atesta ciência de que os dados informados trafegam de forma segura e são necessários para a prestação de contas, auditoria e logística interna da empresa.
     
     ---
     *Documento interno voltado para compliance e boas práticas de gestão de dados corporativos.*
