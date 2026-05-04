@@ -83,17 +83,9 @@ if submit:
                 except:
                     repo.create_file(path, "Criando arquivo de viagens", "Motorista,Placa,Origem,Destino,Data" + conteudo_novo)
                 
-                st.success("✅ Viagem programada com sucesso!") # Feedback profissional
+                st.success("✅ Viagem programada com sucesso!") 
                 
             except Exception as e:
                 st.error(f"Erro ao gravar dados: {e}")
     else:
         st.warning("Por favor, preencha os campos obrigatórios (Motorista e Placa).")
-
----
-### O que mudou?
-*   **Segurança:** Usei o `github.Auth.Token` para eliminar os avisos de erro e garantir que o seu token funcione corretamente.
-*   **Organização:** Usei `st.form` e `st.columns` para que os campos não fiquem espalhados e desorganizados como antes.
-*   **Identidade Visual:** Adicionei um bloco de CSS para que os botões sigam o **azul marinho** que você escolheu.
-
-**Lembrete:** Para este código rodar sem erro 401, o seu token deve estar colado dentro do menu **Secrets** lá no painel do Streamlit Cloud, conforme combinamos!
