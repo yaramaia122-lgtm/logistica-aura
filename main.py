@@ -59,24 +59,35 @@ if not st.session_state['logado']:
         }
         input { -webkit-text-fill-color: #002D5E !important; }
         
-        /* Botão de Entrar Corrigido (Blindado contra bugs do Streamlit) */
+        /* === BOTÃO DE ENTRAR CORRIGIDO (BLINDAGEM TOTAL) === */
         div.stButton > button { 
-            background-color: #E1E8F0 !important; 
-            color: #002D5E !important; 
+            background-color: #FFFFFF !important; 
             border: 2px solid #FFFFFF !important; 
             border-radius: 8px !important;
-            font-weight: 900 !important; 
             width: 100% !important; 
             height: 55px !important; 
         }
-        div.stButton > button p {
-            color: #002D5E !important;
+        
+        /* Força a letra Azul Marinho no estado normal para NÃO sumir */
+        div.stButton > button, 
+        div.stButton > button p, 
+        div.stButton > button span, 
+        div.stButton > button div {
+            color: #002D5E !important; 
             font-size: 18px !important;
-            font-weight: 900 !important;
+            font-weight: 900 !important; 
         }
+        
+        /* Efeito de passar o mouse (Hover) */
         div.stButton > button:hover {
-            background-color: #FFFFFF !important;
-            border-color: #add8e6 !important;
+            background-color: #002D5E !important;
+            border-color: #FFFFFF !important;
+        }
+        div.stButton > button:hover, 
+        div.stButton > button:hover p, 
+        div.stButton > button:hover span, 
+        div.stButton > button:hover div {
+            color: #FFFFFF !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -84,9 +95,9 @@ if not st.session_state['logado']:
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
-        # --- LOGO REDUZIDA AQUI ---
+        # Logo reduzida e centralizada
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown("<h2 style='color: white;'> Portal Logístico</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
         
         with st.form("form_login"):
             usuario_digitado = st.text_input("Usuário Corporativo")
