@@ -1,44 +1,13 @@
 import streamlit as st
 from github import Github, Auth
-import pandas as pd
 from datetime import datetime
 
-# 1. Configuração da Página e Estética (Visual Moderno e Profissional)
-st.set_page_config(page_title="Logística Aura", page_icon="🚚", layout="centered")
-
-# CSS personalizado para o Azul Marinho e Alinhamento
-st.markdown("""
-    <style>
-    .stButton>button {
-        background-color: #000080; /* Azul Marinho */
-        color: white;
-        border-radius: 10px;
-        width: 100%;
-    }
-    .stTextInput>div>div>input {
-        border-color: #add8e6; /* Azul Claro */
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# 2. Conexão Segura com o GitHub (Resolvendo o erro 401)
-def conectar_github():
-    try:
-        # Pega o token do segredo que você salvou no Streamlit Cloud
-        token = st.secrets["GITHUB_TOKEN"]
-        auth = Auth.Token(token)
-        return Github(auth=auth)
-    except Exception as e:
-        st.error("Erro de conexão: Verifique o GITHUB_TOKEN nos Secrets do Streamlit.")
-        return None
-
-# 3. Interface do Aplicativo
-st.image("logo.png", width=200)
+# 1. Interface - Sua Estrutura Original
+st.image("logo.png") 
 st.title("🚚 Logística Aura - Gestão de Viagens")
 st.subheader("Cadastro de Programação")
 
-# Estrutura mapeada e alinhada dos campos
-with st.form("form_logistica", clear_on_submit=True):
+with st.form("form_logistica"):
     col1, col2 = st.columns(2)
     
     with col1:
@@ -54,38 +23,32 @@ with st.form("form_logistica", clear_on_submit=True):
     
     submit = st.form_submit_button("Salvar Programação")
 
-# 4. Gravação das Informações (Persistência de Dados)
+# 2. Lógica de Salvar (Com o fix do GitHub)
 if submit:
     if motorista and placa:
-        g = conectar_github()
-        if g:
+        try:
+            # AQUI ESTÁ A CORREÇÃO DO ERRO 401
+            auth = Auth.Token(st.secrets["GITHUB_TOKEN"])
+            g = Github(auth=auth)
+            
+            # Conexão com seu repositório
+            repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
+            
+            # Dados para salvar
+            nova_viagem = f"\n{motorista},{placa},{origem},{destino},{data_viagem}"
+            path = "viagens_programadas.csv"
+            
             try:
-                # Substitua pelo SEU usuário e nome do repositório
-                repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
-                
-                # Criando os dados para salvar
-                nova_viagem = {
-                    "Motorista": motorista,
-                    "Placa": placa,
-                    "Origem": origem,
-                    "Destino": destino,
-                    "Data": str(data_viagem),
-                    "Registro": datetime.now().strftime("%d/%m/%Y %H:%M")
-                }
-                
-                # Logística para salvar em um CSV no GitHub
-                path = "viagens_programadas.csv"
-                conteudo_novo = f"\n{nova_viagem['Motorista']},{nova_viagem['Placa']},{nova_viagem['Origem']},{nova_viagem['Destino']},{nova_viagem['Data']}"
-                
-                try:
-                    contents = repo.get_contents(path)
-                    repo.update_file(contents.path, "Atualizando viagens", contents.decoded_content.decode() + conteudo_novo, contents.sha)
-                except:
-                    repo.create_file(path, "Criando arquivo de viagens", "Motorista,Placa,Origem,Destino,Data" + conteudo_novo)
-                
-                st.success("✅ Viagem programada com sucesso!") 
-                
-            except Exception as e:
-                st.error(f"Erro ao gravar dados: {e}")
+                # Tenta atualizar o arquivo se ele já existir
+                contents = repo.get_contents(path)
+                repo.update_file(contents.path, "Atualizando viagens", contents.decoded_content.decode() + nova_viagem, contents.sha)
+            except:
+                # Cria o arquivo se for a primeira vez
+                repo.create_file(path, "Criando arquivo", "Motorista,Placa,Origem,Destino,Data" + nova_viagem)
+            
+            st.success("Viagem programada com sucesso!")
+            
+        except Exception as e:
+            st.error(f"Erro ao gravar dados: {e}")
     else:
         st.warning("Por favor, preencha os campos obrigatórios (Motorista e Placa).")
