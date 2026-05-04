@@ -65,20 +65,34 @@ def carregar_bancos():
             df_v = pd.DataFrame(columns=cols_viagens)
             sha_v = None
 
-        # 2. Carregar Usuários
+        # 2. Carregar Usuários com "PROTOCOLO SALVA-VIDAS"
         try:
             cont_usr = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_usr.decoded_content.decode()))
             sha_u = cont_usr.sha
             
-            # Migração automática: se existir coluna Email, renomeia para Usuario
+            # Migração de Colunas
             if "Email" in df_u.columns:
                 df_u.rename(columns={"Email": "Usuario"}, inplace=True)
-            
             if "Primeiro_Acesso" not in df_u.columns:
                 df_u["Primeiro_Acesso"] = "Nao"
+
+            # PROTOCOLO SALVA-VIDAS: Força a existência da Yara Ativa
+            if "yara.chaves" not in df_u["Usuario"].str.lower().values:
+                nova_yara = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
+                df_u = pd.concat([df_u, nova_yara], ignore_index=True)
+                repo.update_file("usuarios.csv", "Injetando Mestre Yara", df_u.to_csv(index=False), sha_u)
+                sha_u = repo.get_contents("usuarios.csv").sha
+            else:
+                idx = df_u.index[df_u['Usuario'].str.lower() == 'yara.chaves'].tolist()[0]
+                if df_u.at[idx, 'Status'] != 'Ativo':
+                    df_u.at[idx, 'Status'] = 'Ativo'
+                    df_u.at[idx, 'Senha'] = 'aura123'
+                    df_u.at[idx, 'Primeiro_Acesso'] = 'Sim'
+                    repo.update_file("usuarios.csv", "Reativando Mestre Yara", df_u.to_csv(index=False), sha_u)
+                    sha_u = repo.get_contents("usuarios.csv").sha
+
         except:
-            # Cria a Yara como Admin Master exigindo troca no primeiro login
             df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
             try:
                 repo.create_file("usuarios.csv", "Criando banco de usuarios", df_u.to_csv(index=False))
@@ -118,7 +132,6 @@ if not st.session_state['logado']:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
         
-        # TELA 3.1: REDEFINIÇÃO OBRIGATÓRIA DE SENHA
         if st.session_state['precisa_trocar_senha']:
             st.markdown("<h2 style='color: white;'>Segurança: Nova Senha</h2>", unsafe_allow_html=True)
             st.info("[ INFO ] Este é o seu primeiro acesso ou sua senha foi resetada. Por diretrizes de segurança, crie uma senha pessoal.")
@@ -150,7 +163,6 @@ if not st.session_state['logado']:
                         else:
                             st.error("[ ERRO ] Falha ao conectar com o servidor para gravar a senha.")
         
-        # TELA 3.2: LOGIN PADRÃO
         else:
             st.markdown("<h2 style='color: white;'>Sistema Backoffice</h2>", unsafe_allow_html=True)
             
@@ -310,7 +322,13 @@ else:
                 total = v_h + v_c + v_a + v_o
                 nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), st.session_state['usuario_atual']]], columns=df.columns)
                 df_final = pd.concat([df, nova_viagem], ignore_index=True)
-                repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha_viagens)
+                
+                # AQUI ESTÁ A CORREÇÃO DE ENGENHARIA (CREATE VS UPDATE)
+                if sha_viagens is None:
+                    repo.create_file("dados_logistica.csv", "Primeiro Registro de Viagem", df_final.to_csv(index=False))
+                else:
+                    repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha_viagens)
+                
                 st.cache_data.clear()
                 st.success("[ OK ] VIAGEM PROGRAMADA E GRAVADA COM SUCESSO!")
                 st.rerun()
@@ -328,7 +346,13 @@ else:
             if st.button("ATUALIZAR BANCO FINANCEIRO"):
                 if repo:
                     df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
-                    repo.update_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False), sha_viagens)
+                    
+                    # CORREÇÃO TAMBÉM NO FINANCEIRO
+                    if sha_viagens is None:
+                        repo.create_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False))
+                    else:
+                        repo.update_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False), sha_viagens)
+                        
                     st.cache_data.clear()
                     st.success("[ OK ] BASE DE DADOS ATUALIZADA!")
                     st.rerun()
@@ -347,7 +371,10 @@ else:
                 
                 if st.button("SALVAR ALTERAÇÕES DE USUÁRIOS E SEGURANÇA"):
                     if repo:
-                        repo.update_file("usuarios.csv", "Edição de Acessos via Admin", df_usr_edit.to_csv(index=False), sha_usuarios)
+                        if sha_usuarios is None:
+                            repo.create_file("usuarios.csv", "Criação de Acessos via Admin", df_usr_edit.to_csv(index=False))
+                        else:
+                            repo.update_file("usuarios.csv", "Edição de Acessos via Admin", df_usr_edit.to_csv(index=False), sha_usuarios)
                         st.cache_data.clear()
                         st.success("[ OK ] SEGURANÇA ATUALIZADA COM SUCESSO!")
                         st.rerun()
