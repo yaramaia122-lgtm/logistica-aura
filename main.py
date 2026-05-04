@@ -86,7 +86,7 @@ if not st.session_state['logado']:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         # --- LOGO REDUZIDA AQUI ---
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown("<h2 style='color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white;'> Portal Logístico</h2>", unsafe_allow_html=True)
         
         with st.form("form_login"):
             usuario_digitado = st.text_input("Usuário Corporativo")
