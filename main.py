@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (CORES CORRIGIDAS: FUNDO CLARO + LETRA ESCURA)
+# 1. TEMA E CSS (LAYOUT AZUL MARINHO + BOTÕES CLAROS COM LETRA ESCURA)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -53,21 +53,24 @@ st.markdown("""
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- CORREÇÃO DOS BOTÕES --- */
+    /* --- CONFIGURAÇÃO DEFINITIVA DOS BOTÕES (LOGIN E SAÍDA) --- */
     div.stButton > button { 
-        background-color: #E1E8F0 !important; 
+        background-color: #FFFFFF !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
         color: #002D5E !important; 
         font-weight: 900 !important;
+        width: 100% !important;
+        height: 50px !important;
         text-transform: uppercase;
     }
     div.stButton > button:hover {
-        background-color: #002D5E !important;
-        color: #FFFFFF !important;
+        background-color: #E1E8F0 !important;
+        border: 2px solid #002D5E !important;
+        color: #002D5E !important;
     }
-    /* -------------------------- */
     
+    /* Estilo da Tabela de Observações */
     .obs-header { background-color: #E75945 !important; color: white !important; text-align: center !important; padding: 10px !important; font-weight: bold !important; border-radius: 8px 8px 0px 0px; margin-bottom: -15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -98,10 +101,6 @@ def carregar_bancos():
             cont_u = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_u.decoded_content.decode()))
             sha_u = cont_u.sha
-            if "yara.chaves" not in df_u["Usuario"].values:
-                df_u = pd.concat([df_u, pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)], ignore_index=True)
-                repo.update_file("usuarios.csv", "Fix", df_u.to_csv(index=False), sha_u)
-                sha_u = repo.get_contents("usuarios.csv").sha
         except:
             df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)
             repo.create_file("usuarios.csv", "Init", df_u.to_csv(index=False))
@@ -144,7 +143,7 @@ if not st.session_state['logado']:
             with st.form("f_l"):
                 u = st.text_input("Usuário Corporativo")
                 s = st.text_input("Senha", type="password")
-                if st.form_submit_button("ACESSAR SISTEMA"):
+                if st.form_submit_button("ENTRAR NO SISTEMA"):
                     udb = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
                     if not udb.empty:
                         if udb.iloc[0]['Primeiro_Acesso'] == 'Sim':
@@ -153,7 +152,7 @@ if not st.session_state['logado']:
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Dados incorretos.")
+                    else: st.error("Acesso negado.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
@@ -163,11 +162,11 @@ else:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
         st.write(f"Usuário: **{st.session_state['usuario_atual']}**")
         menu = st.radio("MENU", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
-        if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("ENCERRAR SESSÃO"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Dashboard":
         st.title("Painel de Indicadores")
-        st.divider()
         if not df.empty:
             df_ativas = df[df["Status"] != "Cancelada"].copy()
             c1, c2, c3 = st.columns(3)
@@ -181,7 +180,6 @@ else:
             with col_g2:
                 st.markdown("#### Destinos Mais Frequentes")
                 st.bar_chart(df_ativas["Trajeto"].value_counts())
-        else: st.info("Sem dados.")
 
     elif menu == "Agenda":
         st.title("Agenda Logística")
@@ -236,12 +234,12 @@ else:
         t1, t2 = st.tabs(["Viagens", "Equipe"])
         with t1:
             df_ed = st.data_editor(df, use_container_width=True, hide_index=True, column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"])})
-            if st.button("SALVAR DADOS DE VIAGENS"):
+            if st.button("SALVAR VIAGENS"):
                 df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel_Valor"] + df_ed["Outros_Valor"]
                 repo.update_file("dados_logistica.csv", "V_Edit", df_ed.to_csv(index=False), sha_viagens)
                 st.cache_data.clear(); st.rerun()
         with t2:
             df_u_ed = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True, column_config={"Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]), "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]), "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])})
-            if st.button("SALVAR CONFIGURAÇÕES DE EQUIPE"):
+            if st.button("SALVAR EQUIPE"):
                 repo.update_file("usuarios.csv", "U_Edit", df_u_ed.to_csv(index=False), sha_usuarios)
                 st.cache_data.clear(); st.rerun()
