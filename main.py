@@ -6,7 +6,14 @@ import os
 from datetime import datetime
 
 # ==========================================================
-# 1. FORÇAR TEMA CLARO
+# 0. INICIALIZAÇÃO DE SESSÃO (LOGIN)
+# ==========================================================
+if 'logado' not in st.session_state:
+    st.session_state['logado'] = False
+    st.session_state['usuario_atual'] = ""
+
+# ==========================================================
+# 1. FORÇAR TEMA CLARO E CONFIGURAÇÃO DA PÁGINA
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -22,15 +29,11 @@ def forcar_tema_claro():
     except:
         pass
 
+st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 forcar_tema_claro()
 
 # ==========================================================
-# 2. CONFIGURAÇÃO DA PÁGINA
-# ==========================================================
-st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
-
-# ==========================================================
-# 3. UI/UX - ESTILO DEFINITIVO
+# 2. UI/UX - ESTILO DEFINITIVO
 # ==========================================================
 st.markdown("""
 <style>
@@ -57,156 +60,180 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 4. BACKEND GITHUB SEGURANÇA MÁXIMA
+# 3. TELA DE LOGIN (BLINDAGEM DO APP)
 # ==========================================================
-def carregar_dados():
-    cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD"]
-    try:
-        token = st.secrets["GITHUB_TOKEN"]
-        auth = Auth.Token(token)
-        g = Github(auth=auth)
+if not st.session_state['logado']:
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=300)
+        st.title("🔐 Acesso Restrito")
         
-        repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
-        contents = repo.get_contents("dados_logistica.csv")
-        df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
-        for c in cols:
-            if c not in df.columns: df[c] = 0.0 if c in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
-        return df, contents.sha, repo, g
-    except:
-        return pd.DataFrame(columns=cols), None, None, None
-
-df, sha, repo, g = carregar_dados()
-
+        with st.form("form_login"):
+            usuario_digitado = st.text_input("Usuário Corporativo")
+            senha_digitada = st.text_input("Senha", type="password")
+            entrar = st.form_submit_button("Entrar no Sistema")
+            
+            if entrar:
+                # === LISTA DE USUÁRIOS E SENHAS (Pode alterar aqui!) ===
+                usuarios_permitidos = {
+                    "admin": "aura123",
+                    "yara": "1234",
+                    "motorista": "log2026"
+                }
+                
+                usuario_limpo = usuario_digitado.strip().lower()
+                
+                if usuario_limpo in usuarios_permitidos and usuarios_permitidos[usuario_limpo] == senha_digitada:
+                    st.session_state['logado'] = True
+                    st.session_state['usuario_atual'] = usuario_limpo
+                    st.rerun()
+                else:
+                    st.error("❌ Usuário ou senha incorretos. Acesso negado.")
+                    
 # ==========================================================
-# 5. SIDEBAR / MENU COM NOVA ABA DE PRIVACIDADE
+# 4. APP PRINCIPAL (SÓ APARECE DEPOIS DO LOGIN)
 # ==========================================================
-with st.sidebar:
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-    st.markdown("---")
-    menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)", "Política de Privacidade"])
+else:
+    # --- Backend Github ---
+    def carregar_dados():
+        cols = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
+        try:
+            token = st.secrets["GITHUB_TOKEN"]
+            auth = Auth.Token(token)
+            g = Github(auth=auth)
+            
+            repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
+            contents = repo.get_contents("dados_logistica.csv")
+            df = pd.read_csv(io.StringIO(contents.decoded_content.decode()))
+            for c in cols:
+                if c not in df.columns: df[c] = 0.0 if c in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
+            return df, contents.sha, repo, g
+        except:
+            return pd.DataFrame(columns=cols), None, None, None
 
-# ==========================================================
-# 6. TELAS E APLICAÇÃO
-# ==========================================================
-if menu == "Agenda":
-    st.title("📋 Agenda de Viagens")
-    if not df.empty:
-        st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]])
-    else:
-        st.info("Nenhuma viagem agendada.")
+    df, sha, repo, g = carregar_dados()
 
-elif menu == "Programar Viagem":
-    st.title("📝 Programar Viagem")
-    
-    form = st.form("meu_form", clear_on_submit=True)
-    col1, col2 = form.columns(2)
-    
-    nome = col1.text_input("Nome do Passageiro").upper()
-    moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
-    
-    lista_base = [
-        "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
-        "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
-        "211003 - Oficina Manutenção Planta", "210201 - Britagem Primária", "210604 - Fundição",
-        "310101 - Almoxarifado", "320401 - Controladoria e Contabilidade", "310701 - Serviços Gerais",
-        "320601 - Celula de Gestao de Contratos", "320101 - Suprimentos", "320502 - Tecnologia da Informação",
-        "311202 - Care and Maintenance SF", "330102 - Apoena Corporativo", "311203 - Care and Maintenance PPQ",
-        "340103 - Jurídico", "310801 - Seguranca Patrimonial", "310301 - PCP", "320201 - Gerência Geral",
-        "310508 - Comunidades", "320303 - Trainee", "320301 - Recursos Humanos", "310902 - Campo",
-        "310904 - Exploração EPP", "121101 - Geologia Operacional - Mina Ernesto",
-        "121102 - Planejamento e Topografia Operacional - Mina Ernesto", "151101 - Geologia Operacional - Mina Nosde",
-        "151103 - Geotecnia - Nosde", "210502 - Barragem", "151102 - Planejamento e Topografia Operacional - Mina Nosde",
-        "310501 - Meio Ambiente", "310503 - Segurança do Trabalho", "310502 - Saude",
-        "150101 - Administração de Mina - Céu Aberto - Nosde", "120101 - Administração de Mina - Céu Aberto - Ernesto"
-    ]
-    
-    if not df.empty and "Centro de Custo" in df.columns:
-        usados_no_banco = df["Centro de Custo"].dropna().unique().tolist()
-        lista_completa = sorted(list(set(lista_base + usados_no_banco)))
-    else:
-        lista_completa = sorted(lista_base)
+    # --- Sidebar / Menu ---
+    with st.sidebar:
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
+        st.markdown(f"<p style='color: white;'>Logado como: <b>{st.session_state['usuario_atual'].upper()}</b></p>", unsafe_allow_html=True)
+        st.markdown("---")
         
-    cc_selecionado = col1.selectbox("Centro de Custo (Selecione na lista)", lista_completa)
-    novo_cc = col1.text_input("➕ Não achou? Cadastre um Novo Centro de Custo aqui:")
-    
-    v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
-    v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
-    
-    data = col2.date_input("Data da Viagem", datetime.now(), format="DD/MM/YYYY")
-    traj = col2.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
-    v_c = col2.number_input("Custo Combustível (R$)", min_value=0.0)
-    v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
-    
-    obs = form.text_input("Observações Adicionais")
-    
-    # === CONSENTIMENTO ATIVO (LGPD) ===
-    st.markdown("---")
-    aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade e Proteção de Dados (LGPD)")
-    
-    gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
-
-    if gravar:
-        centro_custo_final = novo_cc.strip() if novo_cc.strip() != "" else cc_selecionado
-
-        if not nome:
-            st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
-        elif not aceite_lgpd:
-            st.warning("⚠️ ERRO: Você deve concordar com a Política de Privacidade para gravar o registro.")
-        elif not repo:
-            st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
-        else:
-            total = v_h + v_c + v_a + v_o
-            
-            # Registra o Timestamp do Aceite (Data e Hora da ação)
-            timestamp_aceite = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-            
-            nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, timestamp_aceite]], columns=df.columns)
-            df_final = pd.concat([df, nova_viagem], ignore_index=True)
-            
-            repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha)
-            st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
+        # Menu principal (Limpo)
+        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)"])
+        
+        st.markdown("<br><br><br>", unsafe_allow_html=True)
+        
+        # Botão de Sair
+        if st.button("Sair / Logout"):
+            st.session_state['logado'] = False
+            st.session_state['usuario_atual'] = ""
             st.rerun()
+            
+        st.markdown("---")
+        # Política Escondida em uma Gaveta Expansível
+        with st.expander("🛡️ Política de Privacidade LGPD"):
+            st.caption("""
+            **Uso Interno:** Este app gerencia o fluxo de viagens da Aura. 
+            Os dados (nomes e custos) são sigilosos e armazenados em nuvem criptografada.
+            O acesso financeiro exige trava de segurança. Ao cadastrar, você concorda com os termos corporativos.
+            """)
 
-elif menu == "Financeiro (Acesso ADM)":
-    st.title("💰 Controle Financeiro (Restrito)")
-    
-    senha = st.text_input("Digite a senha de Administrador:", type="password")
-    
-    if senha == "aura123":
-        st.success("Acesso Liberado.")
-        df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+    # --- Telas ---
+    if menu == "Agenda":
+        st.title("📋 Agenda de Viagens")
+        if not df.empty:
+            st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]])
+        else:
+            st.info("Nenhuma viagem agendada.")
+
+    elif menu == "Programar Viagem":
+        st.title("📝 Programar Viagem")
         
-        if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
-            if repo:
-                df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
-                repo.update_file("dados_logistica.csv", "Edição Financeira", df_ed.to_csv(index=False), sha)
-                st.success("✅ ALTERAÇÕES REGISTRADAS NO BANCO DE DADOS!")
+        form = st.form("meu_form", clear_on_submit=True)
+        col1, col2 = form.columns(2)
+        
+        nome = col1.text_input("Nome do Passageiro").upper()
+        moto = col1.selectbox("Motorista Designado", ["Ilson", "Antonio", "Outro"])
+        
+        lista_base = [
+            "210301 - Moagem", "210403 - Detox", "210801 - Laboratório", "211002 - Manutenção Mecânica Planta",
+            "210405 - Lixiviação / Cianetação", "210101 - Administração Planta", "211001 - Manutencao Eletrica Planta",
+            "211003 - Oficina Manutenção Planta", "210201 - Britagem Primária", "210604 - Fundição",
+            "310101 - Almoxarifado", "320401 - Controladoria e Contabilidade", "310701 - Serviços Gerais",
+            "320601 - Celula de Gestao de Contratos", "320101 - Suprimentos", "320502 - Tecnologia da Informação",
+            "311202 - Care and Maintenance SF", "330102 - Apoena Corporativo", "311203 - Care and Maintenance PPQ",
+            "340103 - Jurídico", "310801 - Seguranca Patrimonial", "310301 - PCP", "320201 - Gerência Geral",
+            "310508 - Comunidades", "320303 - Trainee", "320301 - Recursos Humanos", "310902 - Campo",
+            "310904 - Exploração EPP", "121101 - Geologia Operacional - Mina Ernesto",
+            "121102 - Planejamento e Topografia Operacional - Mina Ernesto", "151101 - Geologia Operacional - Mina Nosde",
+            "151103 - Geotecnia - Nosde", "210502 - Barragem", "151102 - Planejamento e Topografia Operacional - Mina Nosde",
+            "310501 - Meio Ambiente", "310503 - Segurança do Trabalho", "310502 - Saude",
+            "150101 - Administração de Mina - Céu Aberto - Nosde", "120101 - Administração de Mina - Céu Aberto - Ernesto"
+        ]
+        
+        if not df.empty and "Centro de Custo" in df.columns:
+            usados_no_banco = df["Centro de Custo"].dropna().unique().tolist()
+            lista_completa = sorted(list(set(lista_base + usados_no_banco)))
+        else:
+            lista_completa = sorted(lista_base)
+            
+        cc_selecionado = col1.selectbox("Centro de Custo (Selecione na lista)", lista_completa)
+        novo_cc = col1.text_input("➕ Não achou? Cadastre um Novo Centro de Custo aqui:")
+        
+        v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
+        v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
+        
+        data = col2.date_input("Data da Viagem", datetime.now(), format="DD/MM/YYYY")
+        traj = col2.selectbox("Itinerário Principal", ["P. Lacerda x Cuiabá", "Interno", "Outro"])
+        v_c = col2.number_input("Custo Combustível (R$)", min_value=0.0)
+        v_o = col2.number_input("Outros Custos (R$)", min_value=0.0)
+        
+        obs = form.text_input("Observações Adicionais")
+        
+        # LGPD Ativo (Essencial para manter o escudo jurídico sem ocupar espaço no menu)
+        st.markdown("---")
+        aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade (LGPD)")
+        
+        gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
+
+        if gravar:
+            centro_custo_final = novo_cc.strip() if novo_cc.strip() != "" else cc_selecionado
+
+            if not nome:
+                st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
+            elif not aceite_lgpd:
+                st.warning("⚠️ ERRO: Você deve concordar com a Política de Privacidade para gravar.")
+            elif not repo:
+                st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
+            else:
+                total = v_h + v_c + v_a + v_o
+                timestamp_aceite = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+                usuario_criador = st.session_state['usuario_atual'] # Registra quem foi o usuário logado que criou a viagem
+                
+                nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, timestamp_aceite, usuario_criador]], columns=df.columns)
+                df_final = pd.concat([df, nova_viagem], ignore_index=True)
+                
+                repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha)
+                st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
                 st.rerun()
-    elif senha != "":
-        st.error("Senha incorreta. Acesso negado.")
 
-elif menu == "Política de Privacidade":
-    st.title("🛡️ Política de Privacidade e Proteção de Dados")
-    
-    st.markdown("""
-    ### 1. Finalidade da Coleta de Dados
-    O aplicativo **Aura Apoena Logistics** tem o propósito exclusivo de gerenciar o fluxo interno de viagens corporativas, controlando escalas de motoristas, itinerários e a alocação de custos por centro de despesa.
-
-    ### 2. Tratamento e Armazenamento (LGPD)
-    Todas as informações inseridas neste sistema (nomes, rotas e valores) são tratadas de forma estritamente corporativa e sigilosa.
-    * Os dados não são vendidos, compartilhados ou expostos a terceiros externos à operação da Aura.
-    * O armazenamento é feito em um banco de dados em nuvem criptografado (GitHub Repository) de acesso exclusivo da administração.
-    * **Consentimento Ativo:** O aceite desta política gera um registro de *timestamp* (data e hora) atrelado ao envio do formulário, garantindo a conformidade com a LGPD.
-
-    ### 3. Níveis de Acesso e Segurança
-    Para garantir a privacidade das informações sensíveis:
-    * **Visão Operacional (Agenda):** Exibe apenas informações necessárias para a logística (Passageiro, Motorista, Destino e Data).
-    * **Visão Gerencial (Financeiro):** É protegida por **Trava de Autenticação (Senha de Administrador)**, garantindo que apenas profissionais autorizados possam visualizar e editar valores em reais (R$) relacionados a hotel, aéreo e combustível.
-
-    ### 4. Termos de Uso e Concordância
-    Ao utilizar este sistema para registrar programações de viagem e assinalar a caixa de concordância, o usuário atesta ciência de que os dados informados trafegam de forma segura e são necessários para a prestação de contas, auditoria e logística interna da empresa.
-    
-    ---
-    *Documento interno voltado para compliance e boas práticas de gestão de dados corporativos.*
-    """)
+    elif menu == "Financeiro (Acesso ADM)":
+        st.title("💰 Controle Financeiro (Restrito)")
+        
+        senha = st.text_input("Digite a senha de Administrador de Finanças:", type="password")
+        
+        if senha == "aura123":
+            st.success("Acesso Liberado.")
+            df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+            
+            if st.button("SALVAR ALTERAÇÕES FINANCEIRAS"):
+                if repo:
+                    df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
+                    repo.update_file("dados_logistica.csv", "Edição Financeira", df_ed.to_csv(index=False), sha)
+                    st.success("✅ ALTERAÇÕES REGISTRADAS NO BANCO DE DADOS!")
+                    st.rerun()
+        elif senha != "":
+            st.error("Senha incorreta. Acesso negado.")
