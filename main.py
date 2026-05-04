@@ -16,8 +16,8 @@ if 'perfil' not in st.session_state:
     st.session_state['perfil'] = ""
 if 'precisa_trocar_senha' not in st.session_state:
     st.session_state['precisa_trocar_senha'] = False
-if 'email_troca' not in st.session_state:
-    st.session_state['email_troca'] = ""
+if 'usuario_troca' not in st.session_state:
+    st.session_state['usuario_troca'] = ""
 
 # ==========================================================
 # 1. FORÇAR TEMA CLARO E CSS GLOBAL
@@ -45,7 +45,7 @@ forcar_tema_claro()
 @st.cache_data(ttl=5)
 def carregar_bancos():
     cols_viagens = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
-    cols_usuarios = ["Email", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
+    cols_usuarios = ["Usuario", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
     
     try:
         token = st.secrets["GITHUB_TOKEN"]
@@ -70,10 +70,16 @@ def carregar_bancos():
             cont_usr = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_usr.decoded_content.decode()))
             sha_u = cont_usr.sha
+            
+            # Migração automática: se existir coluna Email, renomeia para Usuario
+            if "Email" in df_u.columns:
+                df_u.rename(columns={"Email": "Usuario"}, inplace=True)
+            
             if "Primeiro_Acesso" not in df_u.columns:
                 df_u["Primeiro_Acesso"] = "Nao"
         except:
-            df_u = pd.DataFrame([["admin@aura.com", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
+            # Cria a Yara como Admin Master exigindo troca no primeiro login
+            df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
             try:
                 repo.create_file("usuarios.csv", "Criando banco de usuarios", df_u.to_csv(index=False))
                 cont_usr = repo.get_contents("usuarios.csv")
@@ -129,15 +135,15 @@ if not st.session_state['logado']:
                         st.error("[ ERRO ] As senhas não coincidem. Tente novamente.")
                     else:
                         if repo:
-                            email_alvo = st.session_state['email_troca']
-                            idx = df_usuarios.index[df_usuarios['Email'].str.lower() == email_alvo].tolist()[0]
+                            usuario_alvo = st.session_state['usuario_troca']
+                            idx = df_usuarios.index[df_usuarios['Usuario'].str.lower() == usuario_alvo].tolist()[0]
                             df_usuarios.at[idx, 'Senha'] = nova_senha
                             df_usuarios.at[idx, 'Primeiro_Acesso'] = 'Nao'
                             
-                            repo.update_file("usuarios.csv", f"Senha atualizada pelo usuario: {email_alvo}", df_usuarios.to_csv(index=False), sha_usuarios)
+                            repo.update_file("usuarios.csv", f"Senha atualizada pelo usuario: {usuario_alvo}", df_usuarios.to_csv(index=False), sha_usuarios)
                             
                             st.session_state['precisa_trocar_senha'] = False
-                            st.session_state['email_troca'] = ""
+                            st.session_state['usuario_troca'] = ""
                             st.cache_data.clear()
                             st.success("[ OK ] Senha alterada com sucesso! Faça login novamente com sua nova senha.")
                             st.rerun()
@@ -149,7 +155,7 @@ if not st.session_state['logado']:
             st.markdown("<h2 style='color: white;'>Sistema Backoffice</h2>", unsafe_allow_html=True)
             
             with st.form("form_login"):
-                email_digitado = st.text_input("E-mail Corporativo")
+                usuario_digitado = st.text_input("Usuário Corporativo (ex: nome.sobrenome)")
                 senha_digitada = st.text_input("Senha de Acesso", type="password")
                 entrar = st.form_submit_button("ENTRAR NO SISTEMA")
                 
@@ -157,23 +163,23 @@ if not st.session_state['logado']:
                     if df_usuarios.empty:
                         st.error("[ ERRO ] Falha ao conectar com o banco de usuários. Verifique o Token.")
                     else:
-                        email_limpo = email_digitado.strip().lower()
-                        usuario_encontrado = df_usuarios[(df_usuarios['Email'].str.lower() == email_limpo) & 
+                        usuario_limpo = usuario_digitado.strip().lower()
+                        usuario_encontrado = df_usuarios[(df_usuarios['Usuario'].str.lower() == usuario_limpo) & 
                                                          (df_usuarios['Senha'] == senha_digitada) & 
                                                          (df_usuarios['Status'] == 'Ativo')]
                         
                         if not usuario_encontrado.empty:
                             if usuario_encontrado.iloc[0]['Primeiro_Acesso'] == 'Sim':
                                 st.session_state['precisa_trocar_senha'] = True
-                                st.session_state['email_troca'] = email_limpo
+                                st.session_state['usuario_troca'] = usuario_limpo
                                 st.rerun()
                             else:
                                 st.session_state['logado'] = True
-                                st.session_state['usuario_atual'] = email_limpo
+                                st.session_state['usuario_atual'] = usuario_limpo
                                 st.session_state['perfil'] = usuario_encontrado.iloc[0]['Perfil']
                                 st.rerun()
                         else:
-                            st.error("[ ERRO ] E-mail ou senha incorretos, ou usuário inativo.")
+                            st.error("[ ERRO ] Usuário ou senha incorretos, ou usuário inativo.")
             
             with st.expander("Esqueceu sua senha?"):
                 st.info("Para redefinir sua senha, contate o Administrador do Sistema. Ele irá fornecer uma senha provisória para o seu próximo login.")
@@ -205,7 +211,7 @@ else:
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown(f"<p style='color: white; text-align: center; font-size: 14px;'>E-mail: <b>{st.session_state['usuario_atual']}</b><br>Perfil: {st.session_state['perfil']}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: white; text-align: center; font-size: 14px;'>Usuário: <b>{st.session_state['usuario_atual']}</b><br>Perfil: {st.session_state['perfil']}</p>", unsafe_allow_html=True)
         st.markdown("---")
         
         opcoes_menu = ["Dashboard", "Agenda", "Programar Viagem"]
