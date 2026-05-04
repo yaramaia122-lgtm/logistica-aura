@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (REVISÃO TOTAL DE CORES E BOTÕES)
+# 1. TEMA E CSS (PADRÃO DE BOTÕES: BRANCO COM LETRA AZUL)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -42,45 +42,42 @@ st.markdown("""
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     
-    /* Títulos e Textos Gerais */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-    /* Campos de Entrada */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
     
-    /* --- BLOCO DE SEGURANÇA PARA BOTÕES (PADRÃO YARA) --- */
-    /* 1. O Botão em si */
+    /* --- CONFIGURAÇÃO DOS BOTÕES --- */
+    /* 1. BOTÃO EM REPOUSO (FUNDO BRANCO / LETRA AZUL) */
     div.stButton > button { 
         background-color: #FFFFFF !important; 
+        color: #002D5E !important; 
         border: 2px solid #002D5E !important; 
         border-radius: 8px !important; 
+        font-weight: 900 !important;
         width: 100% !important;
         height: 50px !important;
         text-transform: uppercase;
-        transition: 0.2s;
     }
     
-    /* 2. O Texto dentro do botão (Aqui é onde corrigimos a leitura) */
-    div.stButton > button div p {
+    /* GARANTIA DA COR DA LETRA AZUL NO FUNDO BRANCO */
+    div.stButton > button p {
         color: #002D5E !important;
-        font-weight: 900 !important;
-        font-size: 16px !important;
     }
 
-    /* 3. Efeito quando passa o mouse (Hover) */
+    /* 2. BOTÃO COM A SETA EM CIMA (FUNDO AZUL / LETRA BRANCA) */
     div.stButton > button:hover {
         background-color: #002D5E !important;
+        color: #FFFFFF !important;
         border: 2px solid #002D5E !important;
     }
     
-    div.stButton > button:hover div p {
-        color: #FFFFFF !important; /* Texto fica branco apenas no fundo azul */
+    div.stButton > button:hover p {
+        color: #FFFFFF !important;
     }
     
-    /* Estilo Especial para a Tabela de Observações */
     .obs-header { background-color: #E75945 !important; color: white !important; text-align: center !important; padding: 10px !important; font-weight: bold !important; border-radius: 8px 8px 0px 0px; margin-bottom: -15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -97,7 +94,6 @@ def carregar_bancos():
         auth = Auth.Token(token)
         g = Github(auth=auth)
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
-        
         try:
             cont_v = repo.get_contents("dados_logistica.csv")
             df_v = pd.read_csv(io.StringIO(cont_v.decoded_content.decode()))
@@ -106,7 +102,6 @@ def carregar_bancos():
                 if c not in df_v.columns: df_v[c] = 0.0 if "_Valor" in c or c == "Total" else ""
         except:
             df_v = pd.DataFrame(columns=cols_v); sha_v = None
-
         try:
             cont_u = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_u.decoded_content.decode()))
@@ -115,14 +110,12 @@ def carregar_bancos():
             df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)
             repo.create_file("usuarios.csv", "Init", df_u.to_csv(index=False))
             sha_u = repo.get_contents("usuarios.csv").sha
-
         try:
             cont_o = repo.get_contents("observacoes.csv")
             df_o = pd.read_csv(io.StringIO(cont_o.decoded_content.decode()))
             sha_o = cont_o.sha
         except:
             df_o = pd.DataFrame(columns=["Data", "Observacao"]); sha_o = None
-
         return df_v, sha_v, df_u, sha_u, df_o, sha_o, repo
     except: return pd.DataFrame(), None, pd.DataFrame(), None, pd.DataFrame(), None, None
 
@@ -132,13 +125,11 @@ df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_ban
 # 3. TELAS DE ACESSO (LOGIN)
 # ==========================================================
 if not st.session_state['logado']:
-    # Cor de fundo azul marinho na tela de login
     st.markdown("""<style>.stApp { background-color: #002D5E !important; } h2, label, p { color: white !important; }</style>""", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        
         if st.session_state['precisa_trocar_senha']:
             with st.form("f_p"):
                 n = st.text_input("Nova Senha", type="password")
@@ -163,7 +154,7 @@ if not st.session_state['logado']:
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Usuário ou senha incorretos.")
+                    else: st.error("Dados de acesso incorretos.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
@@ -183,7 +174,7 @@ else:
             c1, c2, c3 = st.columns(3)
             c1.metric("Viagens Ativas", len(df_ativas))
             c2.metric("Custo Total", f"R$ {df_ativas['Total'].sum():,.2f}")
-            c3.metric("Cancelamentos", len(df[df["Status"] == "Cancelada"]))
+            c3.metric("Canceladas", len(df[df["Status"] == "Cancelada"]))
             col_g1, col_g2 = st.columns(2)
             with col_g1:
                 st.markdown("#### Custos por Centro de Custo")
@@ -196,7 +187,6 @@ else:
         st.title("Agenda Logística")
         d_sel = st.date_input("Semana:", datetime.now().date())
         ini = d_sel - timedelta(days=d_sel.weekday()); fim = ini + timedelta(days=6)
-        
         if not df.empty:
             df['D_Obj'] = pd.to_datetime(df['Data'], format='%d/%m/%Y', errors='coerce').dt.date
             df_s = df[(df['D_Obj'] >= ini) & (df['D_Obj'] <= fim) & (df['Status'] != "Cancelada")]
