@@ -1,2 +1,3 @@
-Passageiro,Motorista,Data,Trajeto,Centro de Custo,Status,Obs,Hotel,Combustivel,Aereo,Outros,Total,Aceite_LGPD,Usuario_Criador
-YARA MAIA CHAVES,Ilson,04/05/2026,P. Lacerda x Cuiabá,210101 - Administração Planta,Cancelada,,0.0,0.0,0.0,0.0,0.0,04/05/2026 15:21:40,admin@aura.com
+Passageiro,Motorista,Data,Trajeto,Local_Hotel,Centro de Custo,Status,Obs,Hotel,Combustivel,Aereo,Outros,Total,Aceite_LGPD,Usuario_Criador
+YARA MAIA CHAVES,Ilson,04/05/2026,P. Lacerda x Cuiabá,,210101 - Administração Planta,Cancelada,,0.0,0.0,0.0,0.0,0.0,04/05/2026 15:21:40,admin@aura.com
+YARA MAIA CHAVES,Ilson,04/05/2026,P. Lacerda x Cuiabá,Aeroporto,310701 - Serviços Gerais,Confirmada,,0.0,0.0,0.0,0.0,0.0,04/05/2026 19:29:28,yara.chaves
