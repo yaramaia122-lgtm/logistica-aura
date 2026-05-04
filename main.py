@@ -94,7 +94,7 @@ if not st.session_state['logado']:
     with col2:
         st.markdown("<br><br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown("<h2 style='color: white;'>🔐 Portal Logístico</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color: white;'>Portal Logístico</h2>", unsafe_allow_html=True)
         
         with st.form("form_login"):
             usuario_digitado = st.text_input("Usuário Corporativo")
@@ -116,7 +116,7 @@ if not st.session_state['logado']:
                     st.session_state['usuario_atual'] = usuario_limpo
                     st.rerun()
                 else:
-                    st.error("❌ Usuário ou senha incorretos. Acesso negado.")
+                    st.error("Usuário ou senha incorretos. Acesso negado.")
 
 # ==========================================================
 # 3. APP PRINCIPAL (SÓ CARREGA DEPOIS DO LOGIN)
@@ -177,7 +177,7 @@ else:
     with st.sidebar:
         st.markdown("<br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown(f"<p style='color: white; text-align: center;'>Logado como: <b>{st.session_state['usuario_atual'].upper()}</b></p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='color: white; text-align: center;'>Usuário: <b>{st.session_state['usuario_atual'].upper()}</b></p>", unsafe_allow_html=True)
         st.markdown("---")
         
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Financeiro (Acesso ADM)"])
@@ -190,23 +190,23 @@ else:
             st.rerun()
             
         st.markdown("---")
-        with st.expander("🛡️ Política de Privacidade LGPD"):
+        with st.expander("Política de Privacidade LGPD"):
             st.caption("""
-            **Uso Interno:** Este app gerencia o fluxo de viagens da Aura. 
+            Uso Interno: Este sistema gerencia o fluxo de viagens da Aura. 
             Os dados (nomes e custos) são sigilosos e armazenados em nuvem criptografada.
-            O acesso financeiro exige trava de segurança. Ao cadastrar, você concorda com os termos corporativos.
+            O acesso financeiro exige trava de segurança. Ao utilizar a ferramenta, você concorda com os termos corporativos.
             """)
 
     # --- Telas ---
     if menu == "Agenda":
-        st.title("📋 Agenda de Viagens")
+        st.title("Agenda de Viagens")
         if not df.empty:
             st.table(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]])
         else:
-            st.info("Nenhuma viagem agendada.")
+            st.info("Nenhuma viagem agendada no momento.")
 
     elif menu == "Programar Viagem":
-        st.title("📝 Programar Viagem")
+        st.title("Programar Viagem")
         
         form = st.form("meu_form", clear_on_submit=True)
         col1, col2 = form.columns(2)
@@ -237,7 +237,7 @@ else:
             lista_completa = sorted(lista_base)
             
         cc_selecionado = col1.selectbox("Centro de Custo (Selecione na lista)", lista_completa)
-        novo_cc = col1.text_input("➕ Não achou? Cadastre um Novo Centro de Custo aqui:")
+        novo_cc = col1.text_input("+ Não achou? Cadastre um Novo Centro de Custo aqui:")
         
         v_h = col1.number_input("Custo Hotel (R$)", min_value=0.0)
         v_a = col1.number_input("Custo Aéreo (R$)", min_value=0.0)
@@ -250,7 +250,7 @@ else:
         obs = form.text_input("Observações Adicionais")
         
         st.markdown("---")
-        aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade (LGPD)")
+        aceite_lgpd = form.checkbox("Li e concordo com a Política de Privacidade e Proteção de Dados (LGPD)")
         
         gravar = form.form_submit_button("GRAVAR REGISTRO NO SISTEMA")
 
@@ -258,11 +258,11 @@ else:
             centro_custo_final = novo_cc.strip() if novo_cc.strip() != "" else cc_selecionado
 
             if not nome:
-                st.warning("⚠️ ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
+                st.warning("ERRO: O campo 'Nome do Passageiro' não pode ficar vazio.")
             elif not aceite_lgpd:
-                st.warning("⚠️ ERRO: Você deve concordar com a Política de Privacidade para gravar.")
+                st.warning("ERRO: Você deve concordar com a Política de Privacidade para gravar.")
             elif not repo:
-                st.error("❌ ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados (Verifique o Token).")
+                st.error("ERRO DE CONEXÃO: Não foi possível conectar ao banco de dados.")
             else:
                 total = v_h + v_c + v_a + v_o
                 timestamp_aceite = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -272,11 +272,11 @@ else:
                 df_final = pd.concat([df, nova_viagem], ignore_index=True)
                 
                 repo.update_file("dados_logistica.csv", "Registro de Viagem", df_final.to_csv(index=False), sha)
-                st.success("✅ VIAGEM PROGRAMADA COM SUCESSO!")
+                st.success("VIAGEM PROGRAMADA COM SUCESSO!")
                 st.rerun()
 
     elif menu == "Financeiro (Acesso ADM)":
-        st.title("💰 Controle Financeiro (Restrito)")
+        st.title("Controle Financeiro (Restrito)")
         
         senha = st.text_input("Digite a senha de Administrador de Finanças:", type="password")
         
@@ -288,7 +288,7 @@ else:
                 if repo:
                     df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
                     repo.update_file("dados_logistica.csv", "Edição Financeira", df_ed.to_csv(index=False), sha)
-                    st.success("✅ ALTERAÇÕES REGISTRADAS NO BANCO DE DADOS!")
+                    st.success("ALTERAÇÕES REGISTRADAS NO BANCO DE DADOS!")
                     st.rerun()
         elif senha != "":
             st.error("Senha incorreta. Acesso negado.")
