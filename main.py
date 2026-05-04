@@ -177,21 +177,6 @@ if not st.session_state['logado']:
             
             with st.expander("Esqueceu sua senha?"):
                 st.info("Para redefinir sua senha, contate o Administrador do Sistema. Ele irá fornecer uma senha provisória para o seu próximo login.")
-            
-            # --- MÓDULO DE RESET (FERRAMENTA DE DESENVOLVEDOR) ---
-            st.markdown("<br>", unsafe_allow_html=True)
-            with st.expander("[ DEV TOOLS ] Manutenção do Sistema"):
-                st.warning("CUIDADO: Esta ação irá apagar todos os usuários atuais e recriar o banco do zero.")
-                if st.button("APAGAR E RESETAR BANCO DE USUÁRIOS"):
-                    if repo:
-                        try:
-                            cols_usuarios = ["Email", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
-                            df_reset = pd.DataFrame([["admin@aura.com", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
-                            repo.update_file("usuarios.csv", "Reset forçado pelo Dev", df_reset.to_csv(index=False), sha_usuarios)
-                            st.cache_data.clear()
-                            st.success("[ OK ] Banco de usuários formatado. Atualize a página e faça login.")
-                        except Exception as e:
-                            st.error(f"[ ERRO ] Falha ao resetar: {e}")
 
 # ==========================================================
 # 4. APP PRINCIPAL (SÓ CARREGA DEPOIS DO LOGIN)
@@ -344,7 +329,7 @@ else:
                     
         with tab_usr:
             st.markdown("### Controle de Acessos")
-            st.markdown("Para resetar uma senha esquecida, altere a senha do colaborador nesta tabela e marque **Exigir Troca de Senha** como **'Sim'**.")
+            st.markdown("Para resetar a senha de um colaborador: Altere a **Senha**, mude a coluna **Exigir Troca de Senha?** para **'Sim'** e clique em Salvar.")
             
             if not df_usuarios.empty:
                 df_usr_edit = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True,
