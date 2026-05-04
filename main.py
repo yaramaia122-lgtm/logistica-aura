@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (LAYOUT CORPORATIVO AZUL MARINHO)
+# 1. TEMA E CSS (CORES CORRIGIDAS: FUNDO CLARO + LETRA ESCURA)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -41,12 +41,33 @@ st.markdown("""
 <style>
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
+    
+    /* Títulos e Textos em Azul Marinho */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; }
+    
+    /* Textos da Barra Lateral em Branco */
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
+
+    /* Campos de Entrada */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
     }
-    div.stButton > button { background-color: #E1E8F0 !important; border: 2px solid #002D5E !important; border-radius: 8px !important; color: #002D5E !important; font-weight: 800 !important; }
+    
+    /* --- CORREÇÃO DOS BOTÕES --- */
+    div.stButton > button { 
+        background-color: #E1E8F0 !important; 
+        border: 2px solid #002D5E !important; 
+        border-radius: 8px !important; 
+        color: #002D5E !important; 
+        font-weight: 900 !important;
+        text-transform: uppercase;
+    }
+    div.stButton > button:hover {
+        background-color: #002D5E !important;
+        color: #FFFFFF !important;
+    }
+    /* -------------------------- */
+    
     .obs-header { background-color: #E75945 !important; color: white !important; text-align: center !important; padding: 10px !important; font-weight: bold !important; border-radius: 8px 8px 0px 0px; margin-bottom: -15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -58,7 +79,6 @@ st.markdown("""
 def carregar_bancos():
     cols_v = ["Passageiro", "Motorista", "Data", "Semana", "Hora_Saida", "Trajeto", "Voo_Cia_Num", "Hora_Voo", "Data_Voo", "Local_Hotel", "Centro de Custo", "Status", "Hotel_Valor", "Combustivel_Valor", "Aereo_Valor", "Outros_Valor", "Total", "Usuario_Criador"]
     cols_u = ["Usuario", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
-    
     try:
         token = st.secrets["GITHUB_TOKEN"]
         auth = Auth.Token(token)
@@ -113,7 +133,7 @@ if not st.session_state['logado']:
             with st.form("f_p"):
                 n = st.text_input("Nova Senha", type="password")
                 c = st.text_input("Confirme", type="password")
-                if st.form_submit_button("SALVAR"):
+                if st.form_submit_button("DEFINIR NOVA SENHA"):
                     if n == c:
                         idx = df_usuarios.index[df_usuarios['Usuario'] == st.session_state['usuario_troca']].tolist()[0]
                         df_usuarios.at[idx, 'Senha'], df_usuarios.at[idx, 'Primeiro_Acesso'] = n, 'Nao'
@@ -124,7 +144,7 @@ if not st.session_state['logado']:
             with st.form("f_l"):
                 u = st.text_input("Usuário Corporativo")
                 s = st.text_input("Senha", type="password")
-                if st.form_submit_button("ENTRAR"):
+                if st.form_submit_button("ACESSAR SISTEMA"):
                     udb = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
                     if not udb.empty:
                         if udb.iloc[0]['Primeiro_Acesso'] == 'Sim':
@@ -133,7 +153,7 @@ if not st.session_state['logado']:
                         else:
                             st.session_state['logado'], st.session_state['usuario_atual'], st.session_state['perfil'] = True, u, udb.iloc[0]['Perfil']
                             st.rerun()
-                    else: st.error("Acesso negado.")
+                    else: st.error("Dados incorretos.")
 
 # ==========================================================
 # 4. APP PRINCIPAL
@@ -141,9 +161,9 @@ if not st.session_state['logado']:
 else:
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
-        st.write(f"Logado: **{st.session_state['usuario_atual']}**")
-        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
-        if st.button("Sair"): st.session_state['logado'] = False; st.rerun()
+        st.write(f"Usuário: **{st.session_state['usuario_atual']}**")
+        menu = st.radio("MENU", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
+        if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Dashboard":
         st.title("Painel de Indicadores")
@@ -152,9 +172,8 @@ else:
             df_ativas = df[df["Status"] != "Cancelada"].copy()
             c1, c2, c3 = st.columns(3)
             c1.metric("Viagens Ativas", len(df_ativas))
-            c2.metric("Custo Global", f"R$ {df_ativas['Total'].sum():,.2f}")
-            c3.metric("Cancelamentos", len(df[df["Status"] == "Cancelada"]))
-            st.markdown("<br>", unsafe_allow_html=True)
+            c2.metric("Custo Total", f"R$ {df_ativas['Total'].sum():,.2f}")
+            c3.metric("Canceladas", len(df[df["Status"] == "Cancelada"]))
             col_g1, col_g2 = st.columns(2)
             with col_g1:
                 st.markdown("#### Custos por Centro de Custo")
@@ -162,7 +181,7 @@ else:
             with col_g2:
                 st.markdown("#### Destinos Mais Frequentes")
                 st.bar_chart(df_ativas["Trajeto"].value_counts())
-        else: st.info("Sem dados para o dashboard.")
+        else: st.info("Sem dados.")
 
     elif menu == "Agenda":
         st.title("Agenda Logística")
@@ -183,13 +202,13 @@ else:
             tx = df_obs[df_obs['Data'] == ch]['Observacao'].values[0] if ch in df_obs['Data'].values else ""
             obs_l.append({"Dia": DIAS_SEMANA_PT[i], "Data": f"{dt.day}/{MESES_PT[dt.month]}", "Chave": ch, "Observação": tx})
         ed_obs = st.data_editor(pd.DataFrame(obs_l), use_container_width=True, hide_index=True, column_config={"Chave": None})
-        if st.button("Salvar Observações"):
+        if st.button("SALVAR OBSERVAÇÕES"):
             new_o = pd.DataFrame([{"Data": r['Chave'], "Observacao": r['Observação']} for _, r in ed_obs.iterrows()])
             repo.update_file("observacoes.csv", "Upd", new_o.to_csv(index=False), sha_obs)
             st.cache_data.clear(); st.rerun()
 
     elif menu == "Programar Viagem":
-        st.title("Nova Programação")
+        st.title("Programar Logística")
         with st.form("f_add", clear_on_submit=True):
             c1, c2 = st.columns(2)
             px = c1.text_input("Passageiro").upper()
@@ -200,8 +219,8 @@ else:
             st.markdown("---")
             vn = st.text_input("Cia/Voo"); vh = st.text_input("Hora Voo"); vd = st.date_input("Data Voo", value=dt)
             st.markdown("---")
-            vh_v = st.number_input("Hotel (R$)"); va_v = st.number_input("Aéreo (R$)"); vc_v = st.number_input("Combustível (R$)"); vo_v = st.number_input("Outros (R$)")
-            if st.form_submit_button("GRAVAR"):
+            vh_v = st.number_input("Custo Hotel (R$)"); va_v = st.number_input("Custo Aéreo (R$)"); vc_v = st.number_input("Custo Combustível (R$)"); vo_v = st.number_input("Outros (R$)")
+            if st.form_submit_button("GRAVAR PROGRAMAÇÃO"):
                 sem = DIAS_SEMANA_PT[dt.weekday()]; tot = vh_v + va_v + vc_v + vo_v
                 nova = pd.DataFrame([{
                     "Passageiro": px, "Motorista": mt, "Data": dt.strftime('%d/%m/%Y'), "Semana": sem, "Hora_Saida": hs, "Trajeto": tj,
@@ -213,17 +232,16 @@ else:
                 st.cache_data.clear(); st.rerun()
 
     elif menu == "Administração":
-        st.title("Painel Administrativo")
-        t1, t2 = st.tabs(["Auditoria de Viagens", "Gestão de Usuários"])
+        st.title("Administração")
+        t1, t2 = st.tabs(["Viagens", "Equipe"])
         with t1:
             df_ed = st.data_editor(df, use_container_width=True, hide_index=True, column_config={"Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"])})
-            if st.button("Salvar Viagens"):
+            if st.button("SALVAR DADOS DE VIAGENS"):
                 df_ed["Total"] = df_ed["Hotel_Valor"] + df_ed["Aereo_Valor"] + df_ed["Combustivel_Valor"] + df_ed["Outros_Valor"]
                 repo.update_file("dados_logistica.csv", "V_Edit", df_ed.to_csv(index=False), sha_viagens)
                 st.cache_data.clear(); st.rerun()
         with t2:
-            df_u_ed = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True,
-                                     column_config={"Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]), "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]), "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])})
-            if st.button("Salvar Usuários"):
+            df_u_ed = st.data_editor(df_usuarios, num_rows="dynamic", use_container_width=True, hide_index=True, column_config={"Perfil": st.column_config.SelectboxColumn("Perfil", options=["Administrador", "Operador"]), "Status": st.column_config.SelectboxColumn("Status", options=["Ativo", "Inativo"]), "Primeiro_Acesso": st.column_config.SelectboxColumn("Exigir Troca Senha?", options=["Sim", "Nao"])})
+            if st.button("SALVAR CONFIGURAÇÕES DE EQUIPE"):
                 repo.update_file("usuarios.csv", "U_Edit", df_u_ed.to_csv(index=False), sha_usuarios)
                 st.cache_data.clear(); st.rerun()
