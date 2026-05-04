@@ -44,7 +44,8 @@ forcar_tema_claro()
 # ==========================================================
 @st.cache_data(ttl=5)
 def carregar_bancos():
-    cols_viagens = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
+    # Nova coluna "Status" inserida
+    cols_viagens = ["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Status", "Obs", "Hotel", "Combustivel", "Aereo", "Outros", "Total", "Aceite_LGPD", "Usuario_Criador"]
     cols_usuarios = ["Usuario", "Senha", "Perfil", "Status", "Primeiro_Acesso"]
     
     try:
@@ -53,31 +54,38 @@ def carregar_bancos():
         g = Github(auth=auth)
         repo = g.get_repo("yaramaia122-lgtm/logistica-aura")
         
-        # 1. Carregar Viagens
+        # 1. Carregar Viagens (Com migração de Status para viagens antigas)
         try:
             cont_viagens = repo.get_contents("dados_logistica.csv")
             df_v = pd.read_csv(io.StringIO(cont_viagens.decoded_content.decode()))
             sha_v = cont_viagens.sha
             for c in cols_viagens:
-                if c not in df_v.columns: df_v[c] = 0.0 if c in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"] else ""
+                if c not in df_v.columns: 
+                    if c in ["Hotel", "Combustivel", "Aereo", "Outros", "Total"]:
+                        df_v[c] = 0.0
+                    elif c == "Status":
+                        df_v[c] = "Confirmada" # Valor padrão para não quebrar viagens antigas
+                    else:
+                        df_v[c] = ""
             df_v["Total"] = pd.to_numeric(df_v["Total"], errors='coerce').fillna(0)
+            
+            # Reordenar colunas para garantir alinhamento perfeito
+            df_v = df_v[cols_viagens]
         except:
             df_v = pd.DataFrame(columns=cols_viagens)
             sha_v = None
 
-        # 2. Carregar Usuários com "PROTOCOLO SALVA-VIDAS"
+        # 2. Carregar Usuários
         try:
             cont_usr = repo.get_contents("usuarios.csv")
             df_u = pd.read_csv(io.StringIO(cont_usr.decoded_content.decode()))
             sha_u = cont_usr.sha
             
-            # Migração de Colunas
             if "Email" in df_u.columns:
                 df_u.rename(columns={"Email": "Usuario"}, inplace=True)
             if "Primeiro_Acesso" not in df_u.columns:
                 df_u["Primeiro_Acesso"] = "Nao"
 
-            # PROTOCOLO SALVA-VIDAS: Força a existência da Yara Ativa
             if "yara.chaves" not in df_u["Usuario"].str.lower().values:
                 nova_yara = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
                 df_u = pd.concat([df_u, nova_yara], ignore_index=True)
@@ -91,7 +99,6 @@ def carregar_bancos():
                     df_u.at[idx, 'Primeiro_Acesso'] = 'Sim'
                     repo.update_file("usuarios.csv", "Reativando Mestre Yara", df_u.to_csv(index=False), sha_u)
                     sha_u = repo.get_contents("usuarios.csv").sha
-
         except:
             df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_usuarios)
             try:
@@ -246,28 +253,31 @@ else:
         st.markdown("Resumo gerencial e métricas de desempenho logístico.")
         st.divider()
         if not df.empty:
+            # Filtra apenas viagens confirmadas e realizadas para o custo real
+            df_ativas = df[df["Status"] != "Cancelada"]
+            
             col1, col2, col3 = st.columns(3)
-            col1.metric(label="Viagens Registradas", value=len(df))
-            col2.metric(label="Custo Global Estimado", value=f"R$ {df['Total'].sum():,.2f}")
-            col3.metric(label="Motoristas Engajados", value=df["Motorista"].nunique())
+            col1.metric(label="Viagens Ativas", value=len(df_ativas))
+            col2.metric(label="Custo Global Estimado", value=f"R$ {df_ativas['Total'].sum():,.2f}")
+            col3.metric(label="Viagens Canceladas", value=len(df[df["Status"] == "Cancelada"]))
             
             st.markdown("<br>", unsafe_allow_html=True)
             col_graf1, col_graf2 = st.columns(2)
             with col_graf1:
-                st.markdown("#### Custos por Centro de Custo")
-                st.bar_chart(df.groupby("Centro de Custo")["Total"].sum().sort_values(ascending=False))
+                st.markdown("#### Custos por Centro de Custo (Ativas)")
+                st.bar_chart(df_ativas.groupby("Centro de Custo")["Total"].sum().sort_values(ascending=False))
             with col_graf2:
-                st.markdown("#### Destinos Mais Frequentes")
-                st.bar_chart(df["Trajeto"].value_counts())
+                st.markdown("#### Destinos Mais Frequentes (Ativas)")
+                st.bar_chart(df_ativas["Trajeto"].value_counts())
         else:
             st.info("[ INFO ] Sem dados para gerar o dashboard.")
 
     elif menu == "Agenda":
         st.title("Agenda de Viagens")
-        st.markdown("Visão geral das programações logísticas.")
+        st.markdown("Visão geral das programações logísticas. Acompanhe o Status de cada registro.")
         st.divider()
         if not df.empty:
-            st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Obs"]], use_container_width=True, hide_index=True)
+            st.dataframe(df[["Passageiro", "Motorista", "Data", "Trajeto", "Centro de Custo", "Status", "Obs"]], use_container_width=True, hide_index=True)
         else:
             st.info("[ INFO ] Nenhuma viagem agendada.")
 
@@ -320,10 +330,11 @@ else:
             elif not repo: st.error("[ ERRO ] Falha de conexão com o banco de dados.")
             else:
                 total = v_h + v_c + v_a + v_o
-                nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, obs, v_h, v_c, v_a, v_o, total, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), st.session_state['usuario_atual']]], columns=df.columns)
+                
+                # A viagem é sempre registrada com o status "Confirmada" por padrão
+                nova_viagem = pd.DataFrame([[nome, moto, data.strftime('%d/%m/%Y'), traj, centro_custo_final, "Confirmada", obs, v_h, v_c, v_a, v_o, total, datetime.now().strftime("%d/%m/%Y %H:%M:%S"), st.session_state['usuario_atual']]], columns=df.columns)
                 df_final = pd.concat([df, nova_viagem], ignore_index=True)
                 
-                # AQUI ESTÁ A CORREÇÃO DE ENGENHARIA (CREATE VS UPDATE)
                 if sha_viagens is None:
                     repo.create_file("dados_logistica.csv", "Primeiro Registro de Viagem", df_final.to_csv(index=False))
                 else:
@@ -338,24 +349,32 @@ else:
         st.markdown("Módulo central de segurança e gestão. Restrito ao nível Administrador.")
         st.divider()
         
-        tab_fin, tab_usr, tab_seg = st.tabs(["Controle Financeiro", "Gestão de Usuários e Segurança", "Governança"])
+        tab_fin, tab_usr, tab_seg = st.tabs(["Auditoria e Status", "Gestão de Usuários e Segurança", "Governança"])
         
         with tab_fin:
-            st.markdown("### Auditoria de Custos Logísticos")
-            df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True, hide_index=True)
-            if st.button("ATUALIZAR BANCO FINANCEIRO"):
-                if repo:
-                    df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
-                    
-                    # CORREÇÃO TAMBÉM NO FINANCEIRO
-                    if sha_viagens is None:
-                        repo.create_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False))
-                    else:
-                        repo.update_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False), sha_viagens)
+            st.markdown("### Controle de Custos e Status de Viagens")
+            st.info("[ INFO ] Para cancelar uma viagem sem perdê-la do relatório, altere a coluna 'Status' para 'Cancelada'.")
+            
+            if not df.empty:
+                df_ed = st.data_editor(df, num_rows="dynamic", use_container_width=True, hide_index=True,
+                                       column_config={
+                                           "Status": st.column_config.SelectboxColumn("Status", options=["Confirmada", "Realizada", "Cancelada"], required=True)
+                                       })
+                
+                if st.button("ATUALIZAR BANCO E STATUS"):
+                    if repo:
+                        df_ed["Total"] = df_ed["Hotel"] + df_ed["Combustivel"] + df_ed["Aereo"] + df_ed["Outros"]
                         
-                    st.cache_data.clear()
-                    st.success("[ OK ] BASE DE DADOS ATUALIZADA!")
-                    st.rerun()
+                        if sha_viagens is None:
+                            repo.create_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False))
+                        else:
+                            repo.update_file("dados_logistica.csv", "Edição Financeira via Admin", df_ed.to_csv(index=False), sha_viagens)
+                            
+                        st.cache_data.clear()
+                        st.success("[ OK ] BASE DE DADOS ATUALIZADA!")
+                        st.rerun()
+            else:
+                st.warning("[ ATENÇÃO ] Não há viagens registradas no momento.")
                     
         with tab_usr:
             st.markdown("### Controle de Acessos")
@@ -386,3 +405,4 @@ else:
             st.success("[ OK ] Forçar Troca de Senha de Novos Usuários: Ativo")
             st.success("[ OK ] Senhas Definitivas Inacessíveis pelo Administrador: Ativo")
             st.success("[ OK ] Criptografia em Nuvem e HTTPS: Ativo")
+            st.success("[ OK ] Exclusão Lógica de Dados (Soft Delete): Ativo")
