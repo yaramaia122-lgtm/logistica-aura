@@ -1,2 +1,2 @@
-Email,Senha,Perfil,Status
-yara.chaves@auraminerals.com ,aura123,Administrador,Ativo
+Email,Senha,Perfil,Status,Primeiro_Acesso
+admin@aura.com,aura123,Administrador,Ativo,Sim
