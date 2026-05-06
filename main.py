@@ -41,7 +41,7 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. CONEXÃO GITHUB (LINHAS CURTAS PARA EVITAR CORTES)
+# 2. CONEXÃO GITHUB
 @st.cache_data(ttl=5)
 def carregar_dados():
     try:
@@ -61,14 +61,14 @@ def carregar_dados():
         df_v, sh_v = ler("dados_logistica.csv", cols_v)
         df_u, sh_u = ler("usuarios.csv", ["Usuario", "Senha", "Perfil"])
         df_o, sh_o = ler("observacoes.csv", ["Data", "Observacao"])
-        return df_v, sh_v, df_u, sh_u, df_o, sh_o, repo
+        return df_v, sh_v, df_u, sh_u, df_o, sha_o, repo
     except: return None
 
 banco = carregar_dados()
 if not banco: st.stop()
 df, sha_v, df_u, sha_u, df_o, sha_o, repo = banco
 
-# 3. TELA DE LOGIN (LOGO E NOME RESTAURADOS)
+# 3. TELA DE LOGIN
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 
 if not st.session_state['logado']:
@@ -86,7 +86,7 @@ if not st.session_state['logado']:
                     st.session_state['logado'] = True; st.rerun()
                 else: st.error("Acesso negado.")
 else:
-    # 4. SIDEBAR COM LOGO
+    # 4. SIDEBAR
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
@@ -96,7 +96,6 @@ else:
     if menu == "Agenda":
         st.title("📅 Agenda de Logística")
         
-        # Tabela de Observações Estilo Imagem 59c22f
         st.markdown('<div class="obs-header">Observações</div>', unsafe_allow_html=True)
         dias_nome = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
         hoje = datetime.now()
@@ -105,7 +104,6 @@ else:
         for i, nome in enumerate(dias_nome):
             dt_curr = (ini_sem + timedelta(days=i)).strftime('%d/%m/%Y')
             dt_label = (ini_sem + timedelta(days=i)).strftime('%d/%b').lower()
-            
             txt_obs = ""
             if not df_o.empty:
                 match = df_o[df_o['Data'] == dt_curr]
@@ -119,7 +117,6 @@ else:
             """, unsafe_allow_html=True)
 
         st.markdown("---")
-        # Listagem de Viagens Ativas
         f_data = st.date_input("Filtrar viagens do dia:", hoje.date())
         df_dia = df[(df['Data'] == f_data.strftime('%d/%m/%Y')) & (df['Status'] != "Cancelada")]
         if not df_dia.empty:
@@ -137,9 +134,3 @@ else:
             mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
             tj = c1.selectbox("Trecho", ["Pontes e Lacerda x Cuiabá", "Cuiabá x Pontes e Lacerda", "Interno"])
             cc = c1.text_input("Centro de Custo")
-            dt = c2.date_input("Data Viagem")
-            hs = c2.text_input("Hora Saída")
-            lh = c2.text_input("Hotel/Destino")
-            st.markdown("### Financeiro e Voo")
-            v1, v2, v3, v4 = st.columns(4)
-            hv = v1.number_input("Hotel", 0.0
