@@ -23,7 +23,7 @@ MESES_PT = {1:'jan', 2:'fev', 3:'mar', 4:'abr', 5:'mai', 6:'jun', 7:'jul', 8:'ag
 DIAS_SEMANA_PT = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"]
 
 # ==========================================================
-# 1. TEMA E CSS (CORREÇÃO SOBERANA DOS BOTÕES)
+# 1. TEMA E CSS (ESPECIFICIDADE TÉCNICA AVANÇADA)
 # ==========================================================
 def forcar_tema_claro():
     try:
@@ -39,46 +39,57 @@ forcar_tema_claro()
 
 st.markdown("""
 <style>
-    /* Estilo Geral */
+    /* 1. RESET DE FUNDO DA APLICAÇÃO */
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
+    
+    /* 2. TIPOGRAFIA GLOBAL */
     h1, h2, h3, label, .stMarkdown p { color: #002D5E !important; font-weight: 700 !important; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-    /* Inputs */
+    /* 3. INPUTS E CAMPOS DE FORMULÁRIO */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input, .stNumberInput input { 
-        background-color: #F0F7FF !important; border: 2px solid #002D5E !important; border-radius: 6px !important; color: #002D5E !important; 
+        background-color: #F0F7FF !important; 
+        border: 2px solid #002D5E !important; 
+        border-radius: 6px !important; 
+        color: #002D5E !important; 
     }
     
-    /* --- A CORREÇÃO QUE VOCÊ PEDIU (FOCO NO BOTÃO) --- */
-    /* Força o fundo branco e a borda azul no botão */
-    div.stButton > button { 
-        background-color: #FFFFFF !important; 
-        border: 2px solid #002D5E !important; 
-        border-radius: 8px !important; 
+    /* 4. ENGENHARIA DO BOTÃO (ESTADO NORMAL) */
+    /* Selecionamos o botão e o parágrafo interno com prioridade máxima */
+    div.stButton > button {
+        background-color: #FFFFFF !important;
+        border: 2px solid #002D5E !important;
+        border-radius: 8px !important;
         width: 100% !important;
         height: 50px !important;
     }
     
-    /* COMANDO SOBERANO: Força a letra a ser AZUL MARINHO quando o botão está branco */
-    div.stButton > button div p {
-        color: #002D5E !important;
+    div.stButton > button p {
+        color: #002D5E !important; /* AZUL MARINHO NO FUNDO BRANCO */
         font-weight: 900 !important;
         font-size: 16px !important;
+        margin: 0px !important;
     }
 
-    /* EFEITO QUANDO COLOCA A SETA (HOVER) */
+    /* 5. ENGENHARIA DO BOTÃO (ESTADO HOVER/MOUSE) */
     div.stButton > button:hover {
         background-color: #002D5E !important;
         border: 2px solid #002D5E !important;
     }
     
-    /* Texto fica BRANCO apenas quando o fundo do botão vira AZUL */
-    div.stButton > button:hover div p {
-        color: #FFFFFF !important;
+    div.stButton > button:hover p {
+        color: #FFFFFF !important; /* BRANCO NO FUNDO AZUL */
     }
     
-    /* Cabeçalho Vermelho das Observações */
+    /* 6. CORREÇÃO ESPECÍFICA PARA TELA DE LOGIN (FUNDO ESCURO) */
+    .login-container { 
+        background-color: #002D5E; 
+        padding: 30px; 
+        border-radius: 15px;
+    }
+    
+    /* Estilo Especial para a Tabela de Observações */
     .obs-header { background-color: #E75945 !important; color: white !important; text-align: center !important; padding: 10px !important; font-weight: bold !important; border-radius: 8px 8px 0px 0px; margin-bottom: -15px; }
 </style>
 """, unsafe_allow_html=True)
@@ -99,33 +110,3 @@ def carregar_bancos():
         try:
             cont_v = repo.get_contents("dados_logistica.csv")
             df_v = pd.read_csv(io.StringIO(cont_v.decoded_content.decode()))
-            sha_v = cont_v.sha
-            for c in cols_v:
-                if c not in df_v.columns: df_v[c] = 0.0 if "_Valor" in c or c == "Total" else ""
-        except:
-            df_v = pd.DataFrame(columns=cols_v); sha_v = None
-
-        try:
-            cont_u = repo.get_contents("usuarios.csv")
-            df_u = pd.read_csv(io.StringIO(cont_u.decoded_content.decode()))
-            sha_u = cont_u.sha
-        except:
-            df_u = pd.DataFrame([["yara.chaves", "aura123", "Administrador", "Ativo", "Sim"]], columns=cols_u)
-            repo.create_file("usuarios.csv", "Init", df_u.to_csv(index=False))
-            sha_u = repo.get_contents("usuarios.csv").sha
-
-        try:
-            cont_o = repo.get_contents("observacoes.csv")
-            df_o = pd.read_csv(io.StringIO(cont_o.decoded_content.decode()))
-            sha_o = cont_o.sha
-        except:
-            df_o = pd.DataFrame(columns=["Data", "Observacao"]); sha_o = None
-
-        return df_v, sha_v, df_u, sha_u, df_o, sha_o, repo
-    except: return pd.DataFrame(), None, pd.DataFrame(), None, pd.DataFrame(), None, None
-
-df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_bancos()
-
-# ==========================================================
-# 3. TELA DE LOGIN
-# =================================================
