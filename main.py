@@ -6,18 +6,22 @@ import os
 from datetime import datetime, timedelta
 
 # ==========================================================
-# 1. CONFIGURAÇÕES DE INTERFACE (CSS SOB MEDIDA)
+# 1. TEMA E CSS (REVISÃO TÉCNICA DOS BOTÕES)
 # ==========================================================
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
 st.markdown("""
 <style>
+    /* Reset de Fundo */
     .stApp { background-color: #FFFFFF !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
+    
+    /* Cores de Texto */
     h1, h2, h3, label, p { color: #002D5E !important; font-weight: 700; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-    /* --- ESTILO DOS BOTÕES (PADRÃO YARA) --- */
+    /* --- ENGENHARIA DO BOTÃO (PADRÃO YARA) --- */
+    /* Alvo: Botão em repouso */
     div.stButton > button, div[data-testid="stForm"] button {
         background-color: #FFFFFF !important;
         border: 2px solid #002D5E !important;
@@ -26,15 +30,14 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* FORÇAR TEXTO EM AZUL MARINHO NO FUNDO BRANCO */
+    /* Alvo: Texto do botão em Azul Marinho */
     div.stButton > button p, div[data-testid="stForm"] button p {
         color: #002D5E !important;
         font-weight: 900 !important;
         font-size: 16px !important;
-        margin: 0px !important;
     }
 
-    /* INVERSÃO AO PASSAR O MOUSE */
+    /* Alvo: Inversão quando a seta está em cima (Hover) */
     div.stButton > button:hover, div[data-testid="stForm"] button:hover {
         background-color: #002D5E !important;
     }
@@ -42,6 +45,7 @@ st.markdown("""
         color: #FFFFFF !important;
     }
 
+    /* Inputs */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], .stDateInput input { 
         background-color: #F0F7FF !important; border: 2px solid #002D5E !important; color: #002D5E !important; 
     }
@@ -50,7 +54,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# 2. VARIÁVEIS E BANCO DE DADOS
+# 2. BANCO DE DADOS E VARIÁVEIS
 # ==========================================================
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 if 'usuario_atual' not in st.session_state: st.session_state['usuario_atual'] = ""
@@ -99,24 +103,7 @@ def carregar_bancos():
 df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_bancos()
 
 # ==========================================================
-# 3. LÓGICA DE TELAS
+# 3. TELAS (LOGIN / APP)
 # ==========================================================
 if not st.session_state['logado']:
     st.markdown("<style>.stApp { background-color: #002D5E !important; } h2 { color: white !important; }</style>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown("<h2 style='text-align: center;'>Login de Acesso</h2>", unsafe_allow_html=True)
-        with st.form("f_login"):
-            u = st.text_input("Usuário")
-            s = st.text_input("Senha", type="password")
-            if st.form_submit_button("ENTRAR NO SISTEMA"):
-                user_match = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
-                if not user_match.empty:
-                    st.session_state['logado'], st.session_state['usuario_atual'] = True, u
-                    st.rerun()
-                else: st.error("Dados incorretos.")
-else:
-    with st.sidebar:
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180
