@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta
 
 # ==========================================================
-# 1. CONFIGURAÇÕES DE INTERFACE (CSS DEFINITIVO)
+# 1. CONFIGURAÇÕES DE INTERFACE (CSS SOB MEDIDA)
 # ==========================================================
 st.set_page_config(page_title="Aura Apoena Logistics", layout="wide")
 
@@ -17,7 +17,7 @@ st.markdown("""
     h1, h2, h3, label, p { color: #002D5E !important; font-weight: 700; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-    /* --- ESTILO DOS BOTÕES (PADRÃO YARA) --- */
+    /* --- ESTILO DOS BOTÕES (PADRÃO YARA CORRIGIDO) --- */
     div.stButton > button, div[data-testid="stForm"] button {
         background-color: #FFFFFF !important;
         border: 2px solid #002D5E !important;
@@ -71,10 +71,8 @@ def carregar_bancos():
             cv = repo.get_contents("dados_logistica.csv")
             df_v = pd.read_csv(io.StringIO(cv.decoded_content.decode()))
             sha_v = cv.sha
-            # Correção técnica: Garantir colunas sem erro de sintaxe
             for c in cols_v:
-                if c not in df_v.columns:
-                    df_v[c] = 0.0 if "_Valor" in c or c == "Total" else ""
+                if c not in df_v.columns: df_v[c] = 0.0 if "_Valor" in c or c == "Total" else ""
         except:
             df_v = pd.DataFrame(columns=cols_v); sha_v = None
 
@@ -104,42 +102,4 @@ df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_ban
 # 3. LÓGICA DE TELAS
 # ==========================================================
 if not st.session_state['logado']:
-    st.markdown("<style>.stApp { background-color: #002D5E !important; } h2 { color: white !important; }</style>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1.2, 1])
-    with col2:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
-        st.markdown("<h2 style='text-align: center;'>Login</h2>", unsafe_allow_html=True)
-        with st.form("f_login"):
-            u = st.text_input("Usuário")
-            s = st.text_input("Senha", type="password")
-            if st.form_submit_button("ENTRAR NO SISTEMA"):
-                user_match = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
-                if not user_match.empty:
-                    st.session_state['logado'], st.session_state['usuario_atual'] = True, u
-                    st.rerun()
-                else: st.error("Erro de login.")
-else:
-    with st.sidebar:
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
-        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Administração"])
-        if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
-
-    if menu == "Agenda":
-        st.title("Agenda de Viagens")
-        d_sel = st.date_input("Semana:", datetime.now().date())
-        ini = d_sel - timedelta(days=d_sel.weekday()); fim = ini + timedelta(days=6)
-        if not df.empty:
-            df['D_Obj'] = pd.to_datetime(df['Data'], format='%d/%m/%Y', errors='coerce').dt.date
-            df_s = df[(df['D_Obj'] >= ini) & (df['D_Obj'] <= fim) & (df['Status'] != "Cancelada")]
-            for t in sorted(df_s['Trajeto'].unique()):
-                st.markdown(f"### 📍 {t}")
-                st.dataframe(df_s[df_s['Trajeto']==t][["Passageiro", "Semana", "Data", "Hora_Saida", "Voo_Cia_Num", "Hora_Voo", "Data_Voo", "Local_Hotel", "Motorista"]], use_container_width=True, hide_index=True)
-
-    elif menu == "Programar Viagem":
-        st.title("Nova Programação")
-        with st.form("f_add", clear_on_submit=True):
-            c1, c2 = st.columns(2)
-            px = c1.text_input("Passageiro").upper()
-            mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
-            tj = c1.
+    st.markdown("<style>.stApp { background-color: #002D5
