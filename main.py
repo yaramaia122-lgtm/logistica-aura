@@ -15,7 +15,6 @@ st.markdown(f"""
     h1, h2, h3, label, p {{ color: #002D5E !important; font-weight: 700; }}
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {{ color: #FFFFFF !important; }}
     
-    /* BOTÃO PADRÃO YARA */
     div.stButton > button, div[data-testid="stForm"] button {{
         background-color: #FFFFFF !important;
         border: 2px solid #002D5E !important;
@@ -27,7 +26,6 @@ st.markdown(f"""
         color: #002D5E !important; font-weight: 900;
     }}
     
-    /* TABELA DE OBSERVAÇÕES (ESTILO IMAGEM 59C22F) */
     .obs-header {{
         background-color: #E75945; color: white; text-align: center;
         padding: 8px; font-weight: bold; border: 1px solid #ddd;
@@ -53,15 +51,12 @@ def carregar_dados():
                 return pd.read_csv(io.StringIO(c.decoded_content.decode())), c.sha
             except: return pd.DataFrame(columns=cols), None
         
-        cols_v = [
-            "Passageiro", "Motorista", "Data", "Trajeto", 
-            "Status", "Centro_Custo", "Hotel_V", "Comb_V", 
-            "Aereo_V", "Outro_V", "Total", "Voo", "Voo_Hora", "Hotel"
-        ]
+        cols_v = ["Passageiro", "Motorista", "Data", "Trajeto", "Status", "Centro_Custo", 
+                  "Hotel_V", "Comb_V", "Aereo_V", "Outro_V", "Total", "Voo", "Voo_Hora", "Hotel"]
         df_v, sh_v = ler("dados_logistica.csv", cols_v)
         df_u, sh_u = ler("usuarios.csv", ["Usuario", "Senha", "Perfil"])
         df_o, sh_o = ler("observacoes.csv", ["Data", "Observacao"])
-        return df_v, sh_v, df_u, sh_u, df_o, sha_o, repo
+        return df_v, sh_v, df_u, sh_u, df_o, sh_o, repo
     except: return None
 
 banco = carregar_dados()
@@ -86,21 +81,17 @@ if not st.session_state['logado']:
                     st.session_state['logado'] = True; st.rerun()
                 else: st.error("Acesso negado.")
 else:
-    # 4. SIDEBAR
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar Viagem", "Dashboard", "Administração"])
         if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
-    # --- MÓDULO: AGENDA COM OBSERVAÇÕES DIRETAS ---
     if menu == "Agenda":
         st.title("📅 Agenda de Logística")
-        
         st.markdown('<div class="obs-header">Observações</div>', unsafe_allow_html=True)
         dias_nome = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
         hoje = datetime.now()
         ini_sem = hoje - timedelta(days=hoje.weekday())
-        
         for i, nome in enumerate(dias_nome):
             dt_curr = (ini_sem + timedelta(days=i)).strftime('%d/%m/%Y')
             dt_label = (ini_sem + timedelta(days=i)).strftime('%d/%b').lower()
@@ -108,14 +99,8 @@ else:
             if not df_o.empty:
                 match = df_o[df_o['Data'] == dt_curr]
                 if not match.empty: txt_obs = match.iloc[0]['Observacao']
-            
-            st.markdown(f"""
-            <div class="obs-row">
-                <div class="obs-day">{nome}<br><small>{dt_label}</small></div>
-                <div class="obs-content">{txt_obs}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
+            st.markdown(f'<div class="obs-row"><div class="obs-day">{nome}<br><small>{dt_label}</small></div>'
+                        f'<div class="obs-content">{txt_obs}</div></div>', unsafe_allow_html=True)
         st.markdown("---")
         f_data = st.date_input("Filtrar viagens do dia:", hoje.date())
         df_dia = df[(df['Data'] == f_data.strftime('%d/%m/%Y')) & (df['Status'] != "Cancelada")]
@@ -125,7 +110,6 @@ else:
                 st.dataframe(df_dia[df_dia['Trajeto']==t][["Passageiro","Motorista","Centro_Custo","Voo","Voo_Hora","Hotel"]], use_container_width=True, hide_index=True)
         else: st.info("Sem viagens para este dia.")
 
-    # --- MÓDULO: PROGRAMAR VIAGEM ---
     elif menu == "Programar Viagem":
         st.title("📝 Nova Programação")
         with st.form("prog_v"):
@@ -134,3 +118,40 @@ else:
             mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
             tj = c1.selectbox("Trecho", ["Pontes e Lacerda x Cuiabá", "Cuiabá x Pontes e Lacerda", "Interno"])
             cc = c1.text_input("Centro de Custo")
+            dt = c2.date_input("Data Viagem")
+            hs = c2.text_input("Hora Saída")
+            lh = c2.text_input("Hotel/Destino")
+            st.markdown("### Financeiro e Voo")
+            v1, v2, v3, v4 = st.columns(4)
+            hv = v1.number_input("Hotel", 0.0)
+            cv = v2.number_input("Combustível", 0.0)
+            av = v3.number_input("Aéreo", 0.0)
+            ov = v4.number_input("Outros", 0.0)
+            vi = c1.text_input("Cia/Voo Nº")
+            vh = c2.text_input("Hora Voo")
+            if st.form_submit_button("GRAVAR"):
+                tot = hv + cv + av + ov
+                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Total":tot,"Hotel_V":hv,"Comb_V":cv,"Aereo_V":av,"Outro_V":ov,"Voo":vi,"Voo_Hora":vh,"Hotel":lh}])
+                df_f = pd.concat([df, nova], ignore_index=True)
+                repo.update_file("dados_logistica.csv", "Add", df_f.to_csv(index=False), sha_v); st.rerun()
+
+    elif menu == "Dashboard":
+        st.title("📊 Gestão Financeira")
+        if not df.empty:
+            df_at = df[df["Status"] != "Cancelada"]
+            st.metric("Custo Total Ativo", f"R$ {df_at['Total'].sum():,.2f}")
+            st.subheader("Custos por Centro de Custo")
+            if 'Centro_Custo' in df_at.columns:
+                st.bar_chart(df_at.groupby('Centro_Custo')['Total'].sum())
+
+    elif menu == "Administração":
+        st.title("⚙️ Administração")
+        t1, t2, t3 = st.tabs(["Viagens", "Usuários", "Observações"])
+        with t1:
+            ed_v = st.data_editor(df, use_container_width=True, hide_index=True)
+            if st.button("Salvar Viagens"):
+                repo.update_file("dados_logistica.csv", "EdV", ed_v.to_csv(index=False), sha_v); st.rerun()
+        with t2:
+            ed_u = st.data_editor(df_u, num_rows="dynamic", use_container_width=True)
+            if st.button("Salvar Usuários"):
+                repo.update_file("usuarios.csv", "EdU", ed_u.to_csv(index=False), sha_u); st.rerun()
