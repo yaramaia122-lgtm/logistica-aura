@@ -17,7 +17,7 @@ st.markdown("""
     h1, h2, h3, label, p { color: #002D5E !important; font-weight: 700; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span { color: #FFFFFF !important; }
 
-    /* --- ESTILO DOS BOTÕES (PADRÃO YARA CORRIGIDO) --- */
+    /* --- ESTILO DOS BOTÕES (PADRÃO YARA) --- */
     div.stButton > button, div[data-testid="stForm"] button {
         background-color: #FFFFFF !important;
         border: 2px solid #002D5E !important;
@@ -102,4 +102,21 @@ df, sha_viagens, df_usuarios, sha_usuarios, df_obs, sha_obs, repo = carregar_ban
 # 3. LÓGICA DE TELAS
 # ==========================================================
 if not st.session_state['logado']:
-    st.markdown("<style>.stApp { background-color: #002D5
+    st.markdown("<style>.stApp { background-color: #002D5E !important; } h2 { color: white !important; }</style>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+    with col2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=220)
+        st.markdown("<h2 style='text-align: center;'>Login de Acesso</h2>", unsafe_allow_html=True)
+        with st.form("f_login"):
+            u = st.text_input("Usuário")
+            s = st.text_input("Senha", type="password")
+            if st.form_submit_button("ENTRAR NO SISTEMA"):
+                user_match = df_usuarios[(df_usuarios['Usuario'] == u) & (df_usuarios['Senha'] == s)]
+                if not user_match.empty:
+                    st.session_state['logado'], st.session_state['usuario_atual'] = True, u
+                    st.rerun()
+                else: st.error("Dados incorretos.")
+else:
+    with st.sidebar:
+        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180
