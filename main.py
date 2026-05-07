@@ -4,26 +4,18 @@ from github import Github, Auth
 import io
 from datetime import datetime, timedelta
 
-# --- 1. DESIGN REFINADO (AZUL CLARO / SEM PRETO / RÓTULOS VISÍVEIS) ---
+# --- 1. DESIGN REFINADO (AZUL CLARO / SEM PRETO / DROPDOWNS CORRIGIDOS) ---
 st.set_page_config(page_title="AURA APOENA", layout="wide")
 
 st.markdown("""
 <style>
-    /* Fundo Geral */
     .stApp { background-color: #F0F8FF; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
 
-    /* RÓTULOS (LABELS) SEMPRE VISÍVEIS */
-    label { 
-        color: #002D5E !important; 
-        font-weight: 700 !important; 
-        font-size: 16px !important;
-    }
+    /* RÓTULOS (LABELS) AZUL MARINHO */
+    label { color: #002D5E !important; font-weight: 700 !important; }
 
-    /* TELA DE LOGIN (Design d11b80) */
-    .lbl-login { color: #FFFFFF !important; font-weight: 600; margin-bottom: 5px; }
-    
-    /* CAMPOS DE INPUT E LISTAS SUSPENSAS (AZUL CLARO - SEM PRETO) */
+    /* CAMPOS DE INPUT E LISTAS SUSPENSAS (AZUL CLARO) */
     .stTextInput input, .stSelectbox div[data-baseweb="select"], 
     .stNumberInput input, .stDateInput input {
         background-color: #E3F2FD !important;
@@ -32,33 +24,26 @@ st.markdown("""
         border-radius: 8px !important;
     }
     
-    /* CORREÇÃO DO TEXTO DENTRO DA LISTA SUSPENSA */
-    div[data-baseweb="popover"] { background-color: #E3F2FD !important; }
-    div[role="option"] { color: #002D5E !important; background-color: #E3F2FD !important; }
+    /* FORÇAR FUNDO BRANCO/AZUL NAS LISTAS SUSPENSAS (DROPDOWNS) */
+    div[data-baseweb="popover"] ul { background-color: #FFFFFF !important; }
+    div[data-baseweb="popover"] li { color: #002D5E !important; background-color: #FFFFFF !important; }
+    div[data-baseweb="popover"] li:hover { background-color: #BBDEFB !important; }
 
-    /* BOTÃO ACESSAR ORIGINAL */
+    /* LOGIN ORIGINAL */
+    .lbl-login { color: #FFFFFF !important; font-weight: 600; }
     .stButton>button {
-        background-color: #FFFFFF !important; 
-        color: #002D5E !important;
-        font-weight: 800 !important; 
-        border-radius: 10px !important; 
-        height: 48px !important;
-        border: none !important;
+        background-color: #FFFFFF !important; color: #002D5E !important;
+        font-weight: 800 !important; border-radius: 10px !important; height: 48px !important;
     }
 
-    /* ESTILO DA AGENDA (CONFORME IMAGEM d08db3) */
+    /* AGENDA ESTILO IMAGEM d08db3 */
     .agenda-header {
-        background-color: #FF7F50 !important; /* Cor Salmão/Laranja */
-        color: white !important; 
-        padding: 10px; 
-        text-align: center;
-        font-weight: bold; 
-        border: 1px solid #ddd;
-        border-radius: 10px 10px 0 0;
+        background-color: #FF7F50 !important; color: white !important; 
+        padding: 10px; text-align: center; font-weight: bold; border-radius: 10px 10px 0 0;
     }
     .agenda-row { display: flex; border: 1px solid #ddd; border-top: none; background-color: white; }
     .agenda-dia { width: 180px; padding: 12px; background: #F8F9FA; border-right: 1px solid #ddd; font-weight: bold; color: #002D5E; }
-    .agenda-obs { flex-grow: 1; padding: 12px; color: #333; min-height: 40px; }
+    .agenda-obs { flex-grow: 1; padding: 12px; color: #333; min-height: 45px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,7 +53,6 @@ def carregar_sistema():
     try:
         tk = st.secrets["GITHUB_TOKEN"]
         rp = Github(auth=Auth.Token(tk)).get_repo("yaramaia122-lgtm/logistica-aura")
-        
         def ler(arq, cols):
             try:
                 c = rp.get_contents(arq)
@@ -77,10 +61,8 @@ def carregar_sistema():
                     if cl not in d.columns: d[cl] = ""
                 return d, c.sha
             except: return pd.DataFrame(columns=cols), None
-
         cv = ["Passageiro", "Motorista", "Data", "Hora_Saida", "Trajeto", "Status", "Centro_Custo", 
               "Hotel_V", "Comb_V", "Aereo_V", "Outros_V", "Total", "Voo", "Voo_Hora", "Hotel"]
-        
         dv, sv = ler("dados_logistica.csv", cv)
         du, su = ler("usuarios.csv", ["Usuario", "Senha"])
         do, so = ler("observacoes.csv", ["Data", "Observacao"])
@@ -91,7 +73,7 @@ res = carregar_sistema()
 if not res: st.stop()
 df, s_v, df_u, s_u, df_o, s_o, repo = res
 
-# --- 3. LOGIN (DESIGN d11b80) ---
+# --- 3. LOGIN ---
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 
 if not st.session_state['logado']:
@@ -100,40 +82,39 @@ if not st.session_state['logado']:
     with col:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=280)
-        st.markdown("<h2 style='color:white; text-align:center; letter-spacing:4px;'>LOGISTICAS</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='color:white; text-align:center;'>LOGISTICAS</h2>", unsafe_allow_html=True)
         with st.form("login"):
-            user = st.text_input("Usuário")
-            pswd = st.text_input("Senha", type="password")
+            u = st.text_input("Usuário")
+            p = st.text_input("Senha", type="password")
             if st.form_submit_button("ACESSAR SISTEMA"):
-                if not df_u[(df_u['Usuario'] == user) & (df_u['Senha'] == pswd)].empty:
+                if not df_u[(df_u['Usuario'] == u) & (df_u['Senha'] == p)].empty:
                     st.session_state['logado'] = True; st.rerun()
                 else: st.error("Dados incorretos.")
 else:
-    # --- 4. SISTEMA PRINCIPAL ---
+    # --- 4. SISTEMA ---
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=160)
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar", "Financeiro", "Administração"])
         if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Agenda":
-        st.markdown('<div class="agenda-header">Observações</div>', unsafe_allow_html=True)
+        st.markdown('<div class="agenda-header">Observações da Semana</div>', unsafe_allow_html=True)
         dias = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
-        hj = datetime.now()
-        ini = hj - timedelta(days=hj.weekday())
+        ini = datetime.now() - timedelta(days=datetime.now().weekday())
         for i, n in enumerate(dias):
             dt = (ini + timedelta(days=i)).strftime('%d/%m/%Y')
-            lbl = (ini + timedelta(days=i)).strftime('%d/%m')
             obs = df_o[df_o['Data'] == dt]['Observacao'].values[0] if dt in df_o['Data'].values else ""
-            st.markdown(f'<div class="agenda-row"><div class="agenda-dia">{n} ({lbl})</div>'
+            st.markdown(f'<div class="agenda-row"><div class="agenda-dia">{n}<br><small>{dt[:5]}</small></div>'
                         f'<div class="agenda-obs">{obs}</div></div>', unsafe_allow_html=True)
         
+        st.info("💡 Para editar as observações acima, vá na aba 'Administração'.")
         st.markdown("---")
-        dt_sel = st.date_input("Consultar viagens do dia:")
-        df_dia = df[(df['Data'] == dt_sel.strftime('%d/%m/%Y')) & (df['Status'] != "Cancelada")]
-        if not df_dia.empty:
-            for tr in df_dia['Trajeto'].unique():
+        f_dia = st.date_input("Viagens do Dia:")
+        df_f = df[(df['Data'] == f_dia.strftime('%d/%m/%Y')) & (df['Status'] != "Cancelada")]
+        if not df_f.empty:
+            for tr in df_f['Trajeto'].unique():
                 st.subheader(f"📍 {tr}")
-                st.dataframe(df_dia[df_dia['Trajeto']==tr][["Passageiro", "Data", "Hora_Saida", "Voo", "Voo_Hora", "Hotel", "Motorista"]], use_container_width=True, hide_index=True)
+                st.dataframe(df_f[df_f['Trajeto']==tr][["Passageiro", "Hora_Saida", "Voo", "Voo_Hora", "Hotel", "Motorista"]], use_container_width=True, hide_index=True)
 
     elif menu == "Programar":
         with st.form("p_form"):
@@ -141,17 +122,12 @@ else:
             px = c1.text_input("Passageiro").upper()
             mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
             tj = c1.selectbox("Trecho", ["P. Lacerda x Cuiabá", "Cuiabá x P. Lacerda", "Interno"])
-            # CENTRO DE CUSTO - LISTA SUSPENSA
             cc_op = sorted(list(set(df["Centro_Custo"].unique()) | {"ADMINISTRATIVO", "MINA", "PLANTA"}))
             cc = c1.selectbox("Centro de Custo", cc_op)
-            dt, hs, lh = c2.date_input("Data"), c2.text_input("Hora Saída"), c2.text_input("Hotel/Destino")
-            st.markdown("### 💰 Financeiro")
-            f1, f2, f3, f4 = st.columns(4)
-            vh, vc = f1.number_input("Hotel", 0.0), f2.number_input("Comb.", 0.0)
-            va, vo = f3.number_input("Aéreo", 0.0), f4.number_input("Outros", 0.0)
-            vn, vhr = c1.text_input("Cia/Voo Nº"), c2.text_input("Hora Voo")
+            dt, hs, lh = c2.date_input("Data"), c2.text_input("Saída"), c2.text_input("Hotel/Destino")
+            vn, vh = c1.text_input("Voo Nº"), c2.text_input("Hora Voo")
             if st.form_submit_button("GRAVAR"):
-                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Hora_Saida":hs,"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Hotel_V":vh,"Comb_V":vc,"Aereo_V":va,"Outros_V":vo,"Total":vh+vc+va+vo,"Voo":vn,"Voo_Hora":vhr,"Hotel":lh}])
+                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Voo":vn,"Voo_Hora":vh,"Hotel":lh,"Hora_Saida":hs}])
                 repo.update_file("dados_logistica.csv", "Add", pd.concat([df, nova]).to_csv(index=False), s_v); st.rerun()
 
     elif menu == "Financeiro":
@@ -162,11 +138,11 @@ else:
     elif menu == "Administração":
         t1, t2, t3 = st.tabs(["Viagens", "Usuários", "Observações"])
         with t1:
-            edv = st.data_editor(df, use_container_width=True, hide_index=True)
-            if st.button("Salvar Viagens"): repo.update_file("dados_logistica.csv", "Ed", edv.to_csv(index=False), s_v); st.rerun()
+            ev = st.data_editor(df, use_container_width=True, hide_index=True)
+            if st.button("Salvar Viagens"): repo.update_file("dados_logistica.csv", "Ed", ev.to_csv(index=False), s_v); st.rerun()
         with t2:
-            edu = st.data_editor(df_u, num_rows="dynamic", use_container_width=True)
-            if st.button("Salvar Usuários"): repo.update_file("usuarios.csv", "Ed", edu.to_csv(index=False), s_u); st.rerun()
+            eu = st.data_editor(df_u, num_rows="dynamic", use_container_width=True)
+            if st.button("Salvar Usuários"): repo.update_file("usuarios.csv", "Ed", eu.to_csv(index=False), s_u); st.rerun()
         with t3:
-            edo = st.data_editor(df_o, num_rows="dynamic", use_container_width=True)
-            if st.button("Salvar Obs"): repo.update_file("observacoes.csv", "Ed", edo.to_csv(index=False), s_o); st.rerun()
+            eo = st.data_editor(df_o, num_rows="dynamic", use_container_width=True)
+            if st.button("Salvar Obs"): repo.update_file("observacoes.csv", "Ed", eo.to_csv(index=False), s_o); st.rerun()
