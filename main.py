@@ -16,10 +16,18 @@ st.markdown(f"""
     h1, h2, h3, label, p {{ color: #002D5E !important; font-weight: 700; }}
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {{ color: #FFFFFF !important; }}
     
+    /* BOTÃO ACESSAR SISTEMA */
     div.stButton > button {{
         background-color: #FFFFFF !important; border: 2px solid #002D5E !important;
         border-radius: 8px !important; color: #002D5E !important;
         height: 45px !important; font-weight: 900 !important;
+    }}
+
+    /* CAMPOS DE INPUT COM FUNDO BRANCO (PARA TELA DE LOGIN) */
+    .stTextInput input {{
+        background-color: #FFFFFF !important;
+        color: #002D5E !important;
+        border: 1px solid #002D5E !important;
     }}
     
     .obs-header {{
@@ -66,7 +74,7 @@ df, s_v, df_u, s_u, df_o, s_o, repo = banco
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 
 if not st.session_state['logado']:
-    st.markdown("<style>.stApp { background-color: #002D5E !important; }</style>", unsafe_allow_html=True)
+    st.markdown("<style>.stApp { background-color: #002D5E !important; } label { color: white !important; }</style>", unsafe_allow_html=True)
     _, login_col, _ = st.columns([1, 1.2, 1])
     with login_col:
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -75,41 +83,4 @@ if not st.session_state['logado']:
         with st.form("f_login"):
             u = st.text_input("usuario")
             p = st.text_input("senha", type="password")
-            if st.form_submit_button("ACESSAR SISTEMA"):
-                if not df_u[(df_u['Usuario'] == u) & (df_u['Senha'] == p)].empty:
-                    st.session_state['logado'] = True; st.rerun()
-                else: st.error("Dados incorretos.")
-else:
-    # 4. SISTEMA
-    with st.sidebar:
-        st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
-        aba = st.radio("MENU", ["📅 Agenda", "📝 Programar", "📊 Dashboard", "⚙️ Admin"])
-        if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
-
-    if aba == "📅 Agenda":
-        st.title("📅 Agenda Semanal")
-        st.markdown('<div class="obs-header">Observações</div>', unsafe_allow_html=True)
-        ds = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
-        h = datetime.now()
-        ini = h - timedelta(days=h.weekday())
-        for i, n in enumerate(ds):
-            dt = (ini + timedelta(days=i)).strftime('%d/%m/%Y')
-            lb = (ini + timedelta(days=i)).strftime('%d/%m')
-            tx = df_o[df_o['Data'] == dt]['Observacao'].values[0] if dt in df_o['Data'].values else ""
-            st.markdown(f'<div class="obs-row"><div class="obs-day">{n}<br><small>{lb}</small></div>'
-                        f'<div class="obs-content">{tx}</div></div>', unsafe_allow_html=True)
-        st.markdown("---")
-        f = st.date_input("Filtrar dia:", h.date())
-        d = f.strftime('%d/%m/%Y')
-        df_d = df[(df['Data'] == d) & (df['Status'] != "Cancelada")]
-        if not df_d.empty:
-            for tr in df_d['Trajeto'].unique():
-                st.subheader(f"📍 {tr}")
-                # Colunas conforme Imagem 5964f6
-                cols = ["Passageiro", "Data", "Hora_Saida", "Voo", "Voo_Hora", "Hotel", "Motorista"]
-                st.dataframe(df_d[df_d['Trajeto']==tr][cols], use_container_width=True, hide_index=True)
-
-    elif aba == "📝 Programar":
-        st.title("📝 Nova Programação")
-        with st.form("f_v"):
-            c1, c2 = st.columns
+            if st.form
