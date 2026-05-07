@@ -5,7 +5,7 @@ import io
 import os
 from datetime import datetime, timedelta
 
-# 1. CONFIGURAÇÕES, ESTILO E IDENTIDADE
+# 1. CONFIGURAÇÕES E ESTILO
 APP_NAME = "AURA APOENA LOGISTICS"
 st.set_page_config(page_title=APP_NAME, layout="wide")
 
@@ -15,13 +15,11 @@ st.markdown(f"""
     [data-testid="stSidebar"] {{ background-color: #002D5E !important; }}
     h1, h2, h3, label, p {{ color: #002D5E !important; font-weight: 700; }}
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label, [data-testid="stSidebar"] span {{ color: #FFFFFF !important; }}
-    
     div.stButton > button, div[data-testid="stForm"] button {{
         background-color: #FFFFFF !important; border: 2px solid #002D5E !important;
         border-radius: 8px !important; color: #002D5E !important;
         height: 45px !important; width: 100% !important; font-weight: 900 !important;
     }}
-    
     .obs-header {{
         background-color: #E75945; color: white; text-align: center;
         padding: 10px; font-weight: bold; border: 1px solid #ddd; border-radius: 5px 5px 0 0;
@@ -35,13 +33,13 @@ st.markdown(f"""
 </style>
 """, unsafe_allow_html=True)
 
-# 2. CONEXÃO COM GITHUB (BANCO DE DADOS)
+# 2. BANCO DE DADOS
 @st.cache_data(ttl=5)
-def conectar_banco():
+def carregar_dados():
     try:
         tk = st.secrets["GITHUB_TOKEN"]
         rp = Github(auth=Auth.Token(tk)).get_repo("yaramaia122-lgtm/logistica-aura")
-        def carregar(arq, cols):
+        def ler(arq, cols):
             try:
                 c = rp.get_contents(arq)
                 return pd.read_csv(io.StringIO(c.decoded_content.decode())), c.sha
@@ -49,18 +47,18 @@ def conectar_banco():
 
         cv = ["Passageiro", "Motorista", "Data", "Trajeto", "Status", "Centro_Custo", 
               "Hotel_V", "Comb_V", "Aereo_V", "Outro_V", "Total", "Voo", "Voo_Hora", "Hotel"]
-        df_v, sh_v = carregar("dados_logistica.csv", cv)
-        df_u, sh_u = carregar("usuarios.csv", ["Usuario", "Senha", "Perfil"])
-        df_o, sh_o = carregar("observacoes.csv", ["Data", "Observacao"])
+        df_v, sh_v = ler("dados_logistica.csv", cv)
+        df_u, sh_u = ler("usuarios.csv", ["Usuario", "Senha", "Perfil"])
+        df_o, sh_o = ler("observacoes.csv", ["Data", "Observacao"])
         return df_v, sh_v, df_u, sh_u, df_o, sh_o, rp
     except: return None
 
-banco = conectar_banco()
+banco = carregar_dados()
 if not banco:
     st.error("Erro de conexão."); st.stop()
 df, s_v, df_u, s_u, df_o, s_o, repo = banco
 
-# 3. LÓGICA DE LOGIN
+# 3. ACESSO
 if 'logado' not in st.session_state: st.session_state['logado'] = False
 
 if not st.session_state['logado']:
@@ -70,47 +68,43 @@ if not st.session_state['logado']:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=250)
         st.markdown(f"<h2 style='color:white; text-align:center;'>{APP_NAME}</h2>", unsafe_allow_html=True)
-        with st.form("f_login"):
-            u_in = st.text_input("Usuário")
-            p_in = st.text_input("Senha", type="password")
-            if st.form_submit_button("ENTRAR NO SISTEMA"):
-                if not df_u[(df_u['Usuario'] == u_in) & (df_u['Senha'] == p_in)].empty:
+        with st.form("f_l"):
+            u = st.text_input("Usuário")
+            p = st.text_input("Senha", type="password")
+            if st.form_submit_button("ACESSAR SISTEMA"):
+                if not df_u[(df_u['Usuario'] == u) & (df_u['Senha'] == p)].empty:
                     st.session_state['logado'] = True; st.rerun()
-                else: st.error("Acesso negado.")
+                else: st.error("Incorreto.")
 else:
-    # 4. PAINEL PRINCIPAL
+    # 4. SISTEMA
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
         aba = st.radio("MENU", ["📅 Agenda", "📝 Programar", "📊 Dashboard", "⚙️ Admin"])
         if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
-    # --- ABA: AGENDA (VISUAL DA IMAGEM SOLICITADA) ---
     if aba == "📅 Agenda":
         st.title("📅 Agenda Semanal")
         st.markdown('<div class="obs-header">OBSERVAÇÕES DA SEMANA</div>', unsafe_allow_html=True)
-        dias = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
+        ds = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
         h = datetime.now()
-        # Cálculo de data simplificado para evitar cortes
-        prox_seg = h - timedelta(days=h.weekday())
-        for i, nome in enumerate(dias):
-            dt_l = (prox_seg + timedelta(days=i)).strftime('%d/%m/%Y')
-            lbl = (prox_seg + timedelta(days=i)).strftime('%d/%m')
-            obs_v = df_o[df_o['Data'] == dt_l]['Observacao'].values[0] if dt_l in df_o['Data'].values else ""
-            st.markdown(f'<div class="obs-row"><div class="obs-day">{nome}<br><small>{lbl}</small></div>'
-                        f'<div class="obs-content">{obs_v}</div></div>', unsafe_allow_html=True)
+        ini = h - timedelta(days=h.weekday())
+        for i, n in enumerate(ds):
+            dt = (ini + timedelta(days=i)).strftime('%d/%m/%Y')
+            lb = (ini + timedelta(days=i)).strftime('%d/%m')
+            tx = df_o[df_o['Data'] == dt]['Observacao'].values[0] if dt in df_o['Data'].values else ""
+            st.markdown(f'<div class="obs-row"><div class="obs-day">{n}<br><small>{lb}</small></div>'
+                        f'<div class="obs-content">{tx}</div></div>', unsafe_allow_html=True)
         st.markdown("---")
-        f_dt = st.date_input("Filtrar viagens por dia:", h.date())
-        d_str = f_dt.strftime('%d/%m/%Y')
-        df_d = df[(df['Data'] == d_str) & (df['Status'] != "Cancelada")]
+        f = st.date_input("Filtrar dia:", h.date())
+        d = f.strftime('%d/%m/%Y')
+        df_d = df[(df['Data'] == d) & (df['Status'] != "Cancelada")]
         if not df_d.empty:
-            for trj in df_d['Trajeto'].unique():
-                st.subheader(f"📍 {trj}")
-                st.dataframe(df_d[df_d['Trajeto']==trj][["Passageiro","Motorista","Centro_Custo","Voo","Voo_Hora","Hotel"]], use_container_width=True, hide_index=True)
-        else: st.info(f"Sem viagens para {d_str}")
+            for tr in df_d['Trajeto'].unique():
+                st.subheader(f"📍 {tr}")
+                st.dataframe(df_d[df_d['Trajeto']==tr][["Passageiro","Motorista","Centro_Custo","Voo","Voo_Hora","Hotel"]], use_container_width=True, hide_index=True)
 
-    # --- ABA: PROGRAMAR ---
     elif aba == "📝 Programar":
-        st.title("📝 Nova Programação")
+        st.title("📝 Nova Viagem")
         with st.form("f_v"):
             c1, c2 = st.columns(2)
             px = c1.text_input("Passageiro").upper()
@@ -120,18 +114,20 @@ else:
             dt = c2.date_input("Data")
             hs = c2.text_input("Hora Saída")
             lh = c2.text_input("Hotel/Destino")
-            st.markdown("### Financeiro e Voo")
+            st.markdown("### Valores e Voo")
             v1, v2, v3, v4 = st.columns(4)
-            vh, vc = v1.number_input("Hotel", 0.0), v2.number_input("Combust.", 0.0)
-            va, vo = v3.number_input("Aéreo", 0.0), v4.number_input("Outros", 0.0)
-            v_n, v_h = c1.text_input("Voo Nº"), c2.text_input("Hora Voo")
-            if st.form_submit_button("GRAVAR VIAGEM"):
-                tot = vh + vc + va + vo
-                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Total":tot,"Hotel_V":vh,"Comb_V":vc,"Aereo_V":va,"Outro_V":vo,"Voo":v_n,"Voo_Hora":v_h,"Hotel":lh}])
+            val_h = v1.number_input("Hotel", 0.0)
+            val_c = v2.number_input("Combustível", 0.0)
+            val_a = v3.number_input("Aéreo", 0.0)
+            val_o = v4.number_input("Outros", 0.0)
+            v_n = c1.text_input("Voo Nº")
+            v_h = c2.text_input("Hora Voo")
+            if st.form_submit_button("GRAVAR"):
+                tot = val_h + val_c + val_a + val_o
+                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Total":tot,"Hotel_V":val_h,"Comb_V":val_c,"Aereo_V":val_a,"Outro_V":val_o,"Voo":v_n,"Voo_Hora":v_h,"Hotel":lh}])
                 df_f = pd.concat([df, nova], ignore_index=True)
                 repo.update_file("dados_logistica.csv", "Add", df_f.to_csv(index=False), s_v); st.rerun()
 
-    # --- ABA: DASHBOARD ---
     elif aba == "📊 Dashboard":
         st.title("📊 Gestão Financeira")
         if not df.empty:
@@ -140,7 +136,6 @@ else:
             st.subheader("Custos por Centro de Custo")
             st.bar_chart(df_at.groupby("Centro_Custo")["Total"].sum())
 
-    # --- ABA: ADMIN ---
     elif aba == "⚙️ Admin":
         st.title("⚙️ Administração")
         t1, t2, t3 = st.tabs(["Viagens", "Usuários", "Observações"])
