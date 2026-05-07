@@ -2,60 +2,45 @@ import streamlit as st
 import pandas as pd
 from github import Github, Auth
 import io
-import os
 from datetime import datetime, timedelta
 
-# 1. ESTILO MODERNO (DESIGN AURA 2.0)
+# 1. ESTILO E DESIGN (MODERNIZAÇÃO AURA)
 st.set_page_config(page_title="AURA APOENA", layout="wide")
 
 st.markdown("""
 <style>
     .stApp { background-color: #F4F7F9 !important; }
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
+    h1, h2, h3, label, p { color: #002D5E !important; font-weight: 700; }
     
-    /* DESIGN DA TELA DE LOGIN */
-    div[data-testid="stForm"] {
-        background: #002D5E;
-        padding: 30px;
-        border-radius: 15px;
-        border: none !important;
-    }
-    
-    /* INPUTS BRANCOS COM TEXTO ESCURO */
+    /* INPUTS LOGIN - FUNDO BRANCO */
     div[data-testid="stForm"] .stTextInput input {
         background-color: #FFFFFF !important;
         color: #002D5E !important;
         border-radius: 8px !important;
-        height: 45px !important;
     }
     
-    /* TÍTULO LOGISTICAS EM BRANCO */
-    .login-title {
-        color: white !important;
-        text-align: center;
-        letter-spacing: 4px;
-        font-weight: 300;
-        margin-top: -10px;
-        margin-bottom: 20px;
-    }
+    /* TÍTULO LOGIN BRANCO */
+    .txt-branco { color: white !important; text-align: center; letter-spacing: 3px; }
 
-    /* BOTÃO ACESSAR SISTEMA */
+    /* BOTÃO BRANCO / LETRA AZUL */
     div.stButton > button {
         background-color: #FFFFFF !important;
         color: #002D5E !important;
-        font-weight: 700 !important;
-        border-radius: 8px !important;
-        height: 48px !important;
+        font-weight: 800 !important;
+        border-radius: 10px !important;
     }
-
-    /* AGENDA ESTILO IMAGEM */
-    .obs-header {
-        background-color: #E75945; color: white; text-align: center;
-        padding: 10px; font-weight: 600; border-radius: 10px 10px 0 0;
+    
+    /* ESTILO AGENDA */
+    .header-vermelho {
+        background-color: #E75945; color: white;
+        padding: 10px; text-align: center; font-weight: bold;
+        border-radius: 10px 10px 0 0;
     }
-    .obs-row { display: flex; border: 1px solid #E0E6ED; border-top: none; background: white; }
-    .obs-day { width: 140px; padding: 12px; background-color: #F8FAFC; border-right: 1px solid #E0E6ED; font-weight: 600; }
-    .obs-content { flex-grow: 1; padding: 12px; color: #475569; min-height: 45px; }
+    .caixa-dia {
+        background-color: #F8FAFC; padding: 15px;
+        border: 1px solid #E2E8F0; margin-bottom: -1px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -86,46 +71,95 @@ res = carregar_dados()
 if not res: st.stop()
 df, s_v, df_u, s_u, df_o, s_o, repo = res
 
-# 3. TELA DE LOGIN (DESIGN D11B80 MODERNO)
-if 'logado' not in st.session_state:
-    st.session_state['logado'] = False
+# 3. TELA DE LOGIN (ESTILO IMAGEM D11B80)
+if 'logado' not in st.session_state: st.session_state['logado'] = False
 
-if st.session_state['logado'] == False:
+if not st.session_state['logado']:
     st.markdown("<style>.stApp { background-color: #002D5E !important; }</style>", unsafe_allow_html=True)
-    _, col_log, _ = st.columns([1, 1, 1])
-    with col_log:
+    _, col_l, _ = st.columns([1, 1, 1])
+    with col_l:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=300)
-        st.markdown("<h2 class='login-title'>LOGISTICAS</h2>", unsafe_allow_html=True)
-        with st.form("login_aura"):
-            st.markdown("<p style='color:white; margin-bottom:-5px;'>Usuário</p>", unsafe_allow_html=True)
-            u_txt = st.text_input("u", label_visibility="collapsed")
-            st.markdown("<p style='color:white; margin-bottom:-5px;'>Senha</p>", unsafe_allow_html=True)
-            p_txt = st.text_input("p", type="password", label_visibility="collapsed")
+        st.markdown("<h2 class='txt-branco'>LOGISTICAS</h2>", unsafe_allow_html=True)
+        with st.form("login"):
+            st.markdown("<p style='color:white;'>Usuário</p>", unsafe_allow_html=True)
+            u = st.text_input("u", label_visibility="collapsed")
+            st.markdown("<p style='color:white;'>Senha</p>", unsafe_allow_html=True)
+            p = st.text_input("p", type="password", label_visibility="collapsed")
             if st.form_submit_button("ACESSAR SISTEMA"):
-                valid = df_u[(df_u['Usuario'] == u_txt) & (df_u['Senha'] == p_txt)]
-                if not valid.empty:
-                    st.session_state['logado'] = True
-                    st.rerun()
-                else: st.error("Acesso negado.")
+                if not df_u[(df_u['Usuario'] == u) & (df_u['Senha'] == p)].empty:
+                    st.session_state['logado'] = True; st.rerun()
+                else: st.error("Dados incorretos.")
 else:
-    # 4. SISTEMA PRINCIPAL
+    # 4. SISTEMA
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
         menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar", "Financeiro", "Admin"])
-        if st.button("SAIR"):
-            st.session_state['logado'] = False
-            st.rerun()
+        if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Agenda":
         st.title("📅 Agenda Semanal")
-        st.markdown('<div class="obs-header">OBSERVAÇÕES</div>', unsafe_allow_html=True)
+        st.markdown('<div class="header-vermelho">Observações da Semana</div>', unsafe_allow_html=True)
         dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
         h = datetime.now()
         seg = h - timedelta(days=h.weekday())
         for i, n in enumerate(dias):
-            dc = (seg + timedelta(days=i)).strftime('%d/%m/%Y')
-            lb = (seg + timedelta(days=i)).strftime('%d/%m')
-            tx = df_o[df_o['Data'] == dc]['Observacao'].values[0] if dc in df_o['Data'].values else ""
-            st.markdown(f'<div class="obs-row"><div class="obs-day">{n}<br><small>{lb}</small></div>'
-                        f'<div class="obs-content
+            dt_c = (seg + timedelta(days=i)).strftime('%d/%m/%Y')
+            lbl = (seg + timedelta(days=i)).strftime('%d/%m')
+            txt = df_o[df_o['Data'] == dt_c]['Observacao'].values[0] if dt_c in df_o['Data'].values else ""
+            with st.container():
+                c_dia, c_obs = st.columns([1, 4])
+                c_dia.markdown(f"**{n}** \n{lbl}")
+                c_obs.write(txt if txt else "---")
+                st.markdown("---")
+
+        st.markdown("### Viagens do Dia")
+        f_d = st.date_input("Consultar:", h.date())
+        df_d = df[(df['Data'] == f_d.strftime('%d/%m/%Y')) & (df['Status'] != "Cancelada")]
+        if not df_d.empty:
+            for tr in df_d['Trajeto'].unique():
+                st.subheader(f"📍 {tr}")
+                cols = ["Passageiro", "Data", "Hora_Saida", "Voo", "Voo_Hora", "Hotel", "Motorista"]
+                st.dataframe(df_d[df_d['Trajeto']==tr][cols], use_container_width=True, hide_index=True)
+
+    elif menu == "Programar":
+        st.title("📝 Programação")
+        with st.form("p"):
+            c1, c2 = st.columns(2)
+            px = c1.text_input("Passageiro").upper()
+            mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
+            tj = c1.selectbox("Trecho", ["P. Lacerda x Cuiabá", "Cuiabá x P. Lacerda", "Interno"])
+            cc = c1.text_input("Centro de Custo")
+            dt, hs, lh = c2.date_input("Data"), c2.text_input("Saída"), c2.text_input("Hotel")
+            st.markdown("### Financeiro")
+            v1, v2, v3, v4 = st.columns(4)
+            vh, vc = v1.number_input("Hotel", 0.0), v2.number_input("Comb.", 0.0)
+            va, vo = v3.number_input("Aéreo", 0.0), v4.number_input("Outros", 0.0)
+            if st.form_submit_button("GRAVAR"):
+                tot = vh + vc + va + vo
+                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Total":tot,"Hotel_V":vh,"Comb_V":vc,"Aereo_V":va,"Outro_V":vo,"Hotel":lh,"Hora_Saida":hs}])
+                df_f = pd.concat([df, nova], ignore_index=True)
+                repo.update_file("dados_logistica.csv", "Add", df_f.to_csv(index=False), s_v); st.rerun()
+
+    elif menu == "Financeiro":
+        st.title("📊 Dashboard")
+        if not df.empty:
+            df_at = df[df["Status"] != "Cancelada"].copy()
+            st.metric("Total Ativo", f"R$ {pd.to_numeric(df_at['Total']).sum():,.2f}")
+            st.bar_chart(df_at.groupby("Centro_Custo")["Total"].sum())
+
+    elif menu == "Admin":
+        st.title("⚙️ Painel Admin")
+        t1, t2, t3 = st.tabs(["Viagens", "Usuários", "Obs"])
+        with t1:
+            ev = st.data_editor(df, use_container_width=True, hide_index=True)
+            if st.button("Salvar Viagens"):
+                repo.update_file("dados_logistica.csv", "EdV", ev.to_csv(index=False), s_v); st.rerun()
+        with t2:
+            eu = st.data_editor(df_u, num_rows="dynamic", use_container_width=True)
+            if st.button("Salvar Usuários"):
+                repo.update_file("usuarios.csv", "EdU", eu.to_csv(index=False), s_u); st.rerun()
+        with t3:
+            eo = st.data_editor(df_o, num_rows="dynamic", use_container_width=True)
+            if st.button("Salvar Obs"):
+                repo.update_file("observacoes.csv", "EdO", eo.to_csv(index=False), s_o); st.rerun()
