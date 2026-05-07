@@ -15,14 +15,14 @@ st.markdown("""
     h1, h2, h3, label, p { color: #002D5E !important; font-weight: 700; }
     [data-testid="stSidebar"] p, [data-testid="stSidebar"] label { color: white !important; }
     
-    /* INPUTS BRANCOS (TELA LOGIN) */
+    /* INPUTS BRANCOS (TELA LOGIN D11B80) */
     div[data-testid="stForm"] .stTextInput input {
         background-color: #FFFFFF !important;
         color: #002D5E !important;
         border: 1px solid #002D5E !important;
     }
     
-    /* BOTÃO ACESSAR */
+    /* BOTÃO ACESSAR SISTEMA */
     div.stButton > button {
         background-color: #FFFFFF !important; color: #002D5E !important;
         font-weight: 900 !important; border-radius: 8px !important;
@@ -86,10 +86,9 @@ if not st.session_state['logado']:
                     st.rerun()
                 else: st.error("Dados incorretos.")
 else:
-    # 4. SISTEMA
+    # 4. SISTEMA PRINCIPAL
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
-        # Nomes simplificados no código para evitar cortes de caractere especial
         aba = st.radio("MENU", ["Agenda", "Programar", "Dashboard", "Admin"])
         if st.button("SAIR"): 
             st.session_state['logado'] = False
@@ -100,4 +99,60 @@ else:
         st.markdown('<div class="obs-header">Observações</div>', unsafe_allow_html=True)
         dias = ["Segunda-Feira", "Terça-Feira", "Quarta-Feira", "Quinta-Feira", "Sexta-Feira", "Sábado", "Domingo"]
         hoje = datetime.now()
-        segunda = hoje - timedelta(days=hoje.weekday
+        # Cálculo quebrado em etapas para evitar cortes de caractere
+        dia_semana = hoje.weekday()
+        segunda = hoje - timedelta(days=dia_semana)
+        
+        for i, n in enumerate(dias):
+            dt_calculada = segunda + timedelta(days=i)
+            dt_c = dt_calculada.strftime('%d/%m/%Y')
+            lbl = dt_calculada.strftime('%d/%m')
+            txt = ""
+            if dt_c in df_o['Data'].values:
+                txt = df_o[df_o['Data'] == dt_c]['Observacao'].values[0]
+            st.markdown(f'<div class="obs-row"><div class="obs-day">{n}<br><small>{lbl}</small></div>'
+                        f'<div class="obs-content">{txt}</div></div>', unsafe_allow_html=True)
+        
+        st.markdown("---")
+        f_d = st.date_input("Filtrar data:", hoje.date())
+        d_str = f_d.strftime('%d/%m/%Y')
+        df_d = df[(df['Data'] == d_str) & (df['Status'] != "Cancelada")]
+        if not df_d.empty:
+            for tr in df_d['Trajeto'].unique():
+                st.subheader(f"📍 {tr}")
+                c_ag = ["Passageiro", "Data", "Hora_Saida", "Voo", "Voo_Hora", "Hotel", "Motorista"]
+                st.dataframe(df_d[df_d['Trajeto']==tr][c_ag], use_container_width=True, hide_index=True)
+
+    elif aba == "Programar":
+        st.title("📝 Nova Programação")
+        with st.form("p_form"):
+            c1, c2 = st.columns(2)
+            px = c1.text_input("Passageiro").upper()
+            mt = c1.selectbox("Motorista", ["Ilson", "Antonio", "Vagno", "Cido", "Outro"])
+            tj = c1.selectbox("Trecho", ["Pontes e Lacerda x Cuiabá", "Cuiabá x Pontes e Lacerda", "Interno"])
+            cc = c1.text_input("Centro de Custo")
+            dt = c2.date_input("Data")
+            hs = c2.text_input("Hora Saída")
+            lh = c2.text_input("Hotel/Destino")
+            st.markdown("### Valores e Voo")
+            v1, v2, v3, v4 = st.columns(4)
+            vh = v1.number_input("Hotel", 0.0)
+            vc = v2.number_input("Combust.", 0.0)
+            va = v3.number_input("Aéreo", 0.0)
+            vo = v4.number_input("Outros", 0.0)
+            vn = c1.text_input("Cia/Voo")
+            vhor = c2.text_input("Hora Voo")
+            if st.form_submit_button("GRAVAR"):
+                tot = vh + vc + va + vo
+                nova = pd.DataFrame([{"Passageiro":px,"Motorista":mt,"Data":dt.strftime('%d/%m/%Y'),"Trajeto":tj,"Status":"Confirmada","Centro_Custo":cc,"Total":tot,"Hotel_V":vh,"Comb_V":vc,"Aereo_V":va,"Outro_V":vo,"Voo":vn,"Voo_Hora":vhor,"Hotel":lh,"Hora_Saida":hs}])
+                df_f = pd.concat([df, nova], ignore_index=True)
+                repo.update_file("dados_logistica.csv", "Add", df_f.to_csv(index=False), s_v)
+                st.rerun()
+
+    elif aba == "Dashboard":
+        st.title("📊 Gestão Financeira")
+        if not df.empty:
+            df_at = df[df["Status"] != "Cancelada"].copy()
+            st.metric("Gasto Total Ativo", f"R$ {pd.to_numeric(df_at['Total']).sum():,.2f}")
+            st.subheader("Custos por Centro de Custo")
+            st.bar_chart(df
