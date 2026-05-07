@@ -4,7 +4,7 @@ from github import Github, Auth
 import io
 from datetime import datetime, timedelta
 
-# 1. ESTILO E DESIGN (MODERNIZAÇÃO AURA)
+# 1. ESTILO E DESIGN MODERNO (TELA D11B80)
 st.set_page_config(page_title="AURA APOENA", layout="wide")
 
 st.markdown("""
@@ -13,33 +13,39 @@ st.markdown("""
     [data-testid="stSidebar"] { background-color: #002D5E !important; }
     h1, h2, h3, label, p { color: #002D5E !important; font-weight: 700; }
     
-    /* INPUTS LOGIN - FUNDO BRANCO */
+    /* LOGIN - CAMPOS COM FUNDO BRANCO E TEXTO ESCURO */
     div[data-testid="stForm"] .stTextInput input {
         background-color: #FFFFFF !important;
         color: #002D5E !important;
         border-radius: 8px !important;
+        border: 1px solid #E2E8F0 !important;
     }
     
-    /* TÍTULO LOGIN BRANCO */
-    .txt-branco { color: white !important; text-align: center; letter-spacing: 3px; }
+    /* TÍTULO LOGISTICAS - BRANCO TOTAL */
+    .titulo-login {
+        color: #FFFFFF !important;
+        text-align: center;
+        letter-spacing: 5px;
+        font-weight: 300;
+        margin-top: -15px;
+        margin-bottom: 25px;
+    }
 
-    /* BOTÃO BRANCO / LETRA AZUL */
+    /* BOTÃO ACESSAR - BRANCO COM FONTE AZUL */
     div.stButton > button {
         background-color: #FFFFFF !important;
         color: #002D5E !important;
         font-weight: 800 !important;
         border-radius: 10px !important;
+        border: none !important;
+        height: 48px !important;
     }
     
-    /* ESTILO AGENDA */
-    .header-vermelho {
+    /* AGENDA - CABEÇALHO VERMELHO */
+    .header-obs {
         background-color: #E75945; color: white;
         padding: 10px; text-align: center; font-weight: bold;
         border-radius: 10px 10px 0 0;
-    }
-    .caixa-dia {
-        background-color: #F8FAFC; padding: 15px;
-        border: 1px solid #E2E8F0; margin-bottom: -1px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -80,26 +86,26 @@ if not st.session_state['logado']:
     with col_l:
         st.markdown("<br><br>", unsafe_allow_html=True)
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=300)
-        st.markdown("<h2 class='txt-branco'>LOGISTICAS</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 class='titulo-login'>LOGISTICAS</h2>", unsafe_allow_html=True)
         with st.form("login"):
-            st.markdown("<p style='color:white;'>Usuário</p>", unsafe_allow_html=True)
-            u = st.text_input("u", label_visibility="collapsed")
-            st.markdown("<p style='color:white;'>Senha</p>", unsafe_allow_html=True)
-            p = st.text_input("p", type="password", label_visibility="collapsed")
+            # IDENTIFICAÇÃO DENTRO DOS CAMPOS (PLACEHOLDER)
+            u = st.text_input("Usuário", placeholder="Digite seu usuário", label_visibility="collapsed")
+            p = st.text_input("Senha", type="password", placeholder="Digite sua senha", label_visibility="collapsed")
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.form_submit_button("ACESSAR SISTEMA"):
                 if not df_u[(df_u['Usuario'] == u) & (df_u['Senha'] == p)].empty:
                     st.session_state['logado'] = True; st.rerun()
-                else: st.error("Dados incorretos.")
+                else: st.error("Usuário ou senha incorretos.")
 else:
-    # 4. SISTEMA
+    # 4. SISTEMA PRINCIPAL
     with st.sidebar:
         st.image("https://raw.githubusercontent.com/yaramaia122-lgtm/logistica-aura/main/logo.png", width=180)
-        menu = st.radio("NAVEGAÇÃO", ["Agenda", "Programar", "Financeiro", "Admin"])
+        menu = st.radio("MENU", ["Agenda", "Programar", "Financeiro", "Admin"])
         if st.button("SAIR"): st.session_state['logado'] = False; st.rerun()
 
     if menu == "Agenda":
         st.title("📅 Agenda Semanal")
-        st.markdown('<div class="header-vermelho">Observações da Semana</div>', unsafe_allow_html=True)
+        st.markdown('<div class="header-obs">Observações da Semana</div>', unsafe_allow_html=True)
         dias = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
         h = datetime.now()
         seg = h - timedelta(days=h.weekday())
@@ -109,12 +115,11 @@ else:
             txt = df_o[df_o['Data'] == dt_c]['Observacao'].values[0] if dt_c in df_o['Data'].values else ""
             with st.container():
                 c_dia, c_obs = st.columns([1, 4])
-                c_dia.markdown(f"**{n}** \n{lbl}")
-                c_obs.write(txt if txt else "---")
-                st.markdown("---")
+                c_dia.markdown(f"**{n}**\n{lbl}")
+                c_obs.info(txt if txt else "Sem observações.")
 
-        st.markdown("### Viagens do Dia")
-        f_d = st.date_input("Consultar:", h.date())
+        st.markdown("---")
+        f_d = st.date_input("Ver viagens de:", h.date())
         df_d = df[(df['Data'] == f_d.strftime('%d/%m/%Y')) & (df['Status'] != "Cancelada")]
         if not df_d.empty:
             for tr in df_d['Trajeto'].unique():
@@ -142,14 +147,14 @@ else:
                 repo.update_file("dados_logistica.csv", "Add", df_f.to_csv(index=False), s_v); st.rerun()
 
     elif menu == "Financeiro":
-        st.title("📊 Dashboard")
+        st.title("📊 Dashboard Financeiro")
         if not df.empty:
             df_at = df[df["Status"] != "Cancelada"].copy()
             st.metric("Total Ativo", f"R$ {pd.to_numeric(df_at['Total']).sum():,.2f}")
             st.bar_chart(df_at.groupby("Centro_Custo")["Total"].sum())
 
     elif menu == "Admin":
-        st.title("⚙️ Painel Admin")
+        st.title("⚙️ Administração")
         t1, t2, t3 = st.tabs(["Viagens", "Usuários", "Obs"])
         with t1:
             ev = st.data_editor(df, use_container_width=True, hide_index=True)
